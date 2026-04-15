@@ -34,10 +34,13 @@ def health_check():
     """Health check for frontend connectivity verification."""
     return {"status": "ok"}
 
+from typing import Optional
+
 class InputPayload(BaseModel):
     description: str
     role: str
     question: str
+    web_search: Optional[bool] = False
 
 import time
 from google.genai.models import Models
@@ -46,12 +49,12 @@ original_generate_content = Models.generate_content
 
 def generate_content_with_fallback(self, *args, **kwargs):
     models_to_try = [
-        "gemini-3.0-flash",
-        "gemini-2.5-flash",
-        "gemini-1.5-flash",
-        "gemini-3.1-flash-lite",
+        "gemini-1.5-flash-8b",
         "gemini-2.5-flash-lite",
-        "gemini-1.5-flash-8b"
+        "gemini-3.1-flash-lite",
+        "gemini-3.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-flash"
     ]
     last_error = None
     
@@ -71,7 +74,7 @@ def generate_content_with_fallback(self, *args, **kwargs):
         if attempt < 4:
             time.sleep(3)
             
-    raise Exception("The model traffic is high currently, please try again later")
+    raise Exception("Sorry, the LLM is occupied, Please try again later")
 
 Models.generate_content = generate_content_with_fallback
 
@@ -82,8 +85,8 @@ def agent_endpoint(payload: InputPayload):
         result = process_agent_request(payload.model_dump())
         return {"response": result}
     except Exception as e:
-        if "The model traffic is high currently" in str(e):
-            return {"response": "The model traffic is high currently, please try again later"}
+        if "Sorry, the LLM is occupied" in str(e):
+            return {"response": "Sorry, the LLM is occupied, Please try again later"}
         raise e
 
 @app.post("/chat")
@@ -93,8 +96,8 @@ def chat_endpoint(payload: InputPayload):
         result = run_chat_request(payload.model_dump())
         return {"response": result}
     except Exception as e:
-        if "The model traffic is high currently" in str(e):
-            return {"response": "The model traffic is high currently, please try again later"}
+        if "Sorry, the LLM is occupied" in str(e):
+            return {"response": "Sorry, the LLM is occupied, Please try again later"}
         raise e
 
 

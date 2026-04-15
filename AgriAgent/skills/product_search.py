@@ -36,25 +36,49 @@ def run_product_search(input_data: dict, specified_items: list[str] = None) -> s
         items = extract_items(input_data)
         
     if not items:
-        # Fallback if AI couldn't extract
-        items = ["fertiliser"] # random safe fallback
+        items = ["fertiliser"]
         
     app_results = []
     web_results = []
     
-    # Process the most prominent item
-    main_item = items[0]
+    # 2. App search (always runs) — iterate ALL items, not just the first
+    for item in items:
+        shop_res = search_shop_products(item)
+        app_results.extend(shop_res)
     
-    # 2. App search (always runs)
-    shop_res = search_shop_products(main_item)
-    app_results.extend(shop_res[:25]) # max 25
+    # Deduplicate app results by name
+    seen = set()
+    unique_app = []
+    for r in app_results:
+        key = r.get('name', '')
+        if key not in seen:
+            seen.add(key)
+            unique_app.append(r)
+    app_results = unique_app[:25]  # max 25
     
-    # 3. Web Search (if enabled)
+    # 3. Web Search (if enabled) — minimum 5 links
     if web_search_enabled:
-        w_res = search_web(f"{main_item} supplier Malaysia", max_results=3)
-        web_results.extend(w_res)
+        for item in items:
+            w_res = search_web(f"{item} supplier Malaysia", max_results=5)
+            web_results.extend(w_res)
         
-    # Formatting
-    # Ensure min 2 results by duplicating or expanding search if we had a bigger DB,
-    # but based on mock DB it will fetch whatever is available
+        # Deduplicate web results by URL
+        seen_urls = set()
+        unique_web = []
+        for r in web_results:
+            url = r.get('url', '')
+            if url not in seen_urls:
+                seen_urls.add(url)
+                unique_web.append(r)
+        web_results = unique_web[:25]  # max 25
+        
+        # If we still have fewer than 5, do a broader search
+        if len(web_results) < 5:
+            broader = search_web(f"agricultural {'  '.join(items)} supplier buy Malaysia", max_results=5)
+            for r in broader:
+                url = r.get('url', '')
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    web_results.append(r)
+        
     return format_product_results(app_results, web_results, web_search_enabled)
