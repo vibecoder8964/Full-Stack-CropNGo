@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+google-genai
+ddgs
+httpx
+python-dotenv
+beautifulsoup4
+google-cloud-aiplatform

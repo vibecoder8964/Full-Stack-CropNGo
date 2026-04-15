@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+.env
+.env.local
+.env.production
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Testing
+test_output_*.json
