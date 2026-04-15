@@ -17,6 +17,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/")
+def root():
+    """Root endpoint — shows API info instead of a blank page."""
+    return {
+        "service": "AgriAgent API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": ["/agent", "/chat", "/events", "/health"],
+    }
+
+
+@app.get("/health")
+def health_check():
+    """Health check for frontend connectivity verification."""
+    return {"status": "ok"}
+
 class InputPayload(BaseModel):
     description: str
     role: str

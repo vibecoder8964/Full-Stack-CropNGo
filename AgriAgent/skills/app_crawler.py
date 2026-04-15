@@ -51,7 +51,7 @@ def search_shop_products(question: str) -> list:
         keywords = [word for word in question.lower().split() if len(word) > 4]
     
     # Fetch data
-    all_products = fetch_all_from_firestore("products")
+    all_products = fetch_all_from_firestore("listings")
     all_users = fetch_all_from_firestore("users")
     
     results = []
