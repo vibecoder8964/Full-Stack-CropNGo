@@ -145,8 +145,8 @@ If you want to test the SEO website generation feature:
 3. Add the token and bot info to your `AgriAgent/.env` file:
    ```env
    GITHUB_BOT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
-   GITHUB_BOT_USERNAME=agriconnect-bot
-   GITHUB_BOT_EMAIL=agriconnect-bot@yourdomain.com
+   GITHUB_BOT_USERNAME=YOUR_USERNAME
+   GITHUB_BOT_EMAIL=YOUR_REGISTERED_EMAIL
    ```
 4. Test the automated setup by running this command in the `AgriAgent` terminal (make sure your virtual environment is activated):
    ```bash
@@ -194,7 +194,7 @@ Here is the step-by-step guide to safe committing:
 4. **Commit your changes**
    Save a snapshot of the current state:
    ```bash
-   git commit -m "feat: setup full stack app with local `.env.example`"
+   git commit -m "DESCRIPTIVE_NOTE_HERE"
    ```
 
 5. **Link to your GitHub Repository** *(Skip if already linked)*
@@ -222,7 +222,7 @@ Once you've made your first commit and your repository is linked to GitHub, foll
 2. **Commit your changes**:
    This saves a local snapshot of your project with a descriptive note. **You must do this before you can push!**
    ```bash
-   git commit -m "feat: added notifications and product detail page"
+   git commit -m "DESCRIPTIVE_NOTE_HERE"
    ```
 
 3. **Push to GitHub**:
