@@ -79,6 +79,9 @@ export default function EventsPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
 
+  const [estimate, setEstimate] = useState('Starting search...')
+  const [hasStartedSearch, setHasStartedSearch] = useState(false)
+
   // Subscribe to background fetch state changes
   useEffect(() => {
     const listener = () => forceUpdate(n => n + 1)
@@ -86,36 +89,77 @@ export default function EventsPage() {
     return () => _bgFetchListeners.delete(listener)
   }, [])
 
-  // On mount: check cache → if valid use it, else start background fetch
+  const ESTIMATES = [
+    'Crawling web (approx. 45s)...',
+    'Analyzing sources (30s)...',
+    'Ranking results (15s)...',
+    'Finalizing details (5s)...',
+    'Almost there...'
+  ]
+
+  // Manage Estimate when loading
   useEffect(() => {
-    // Try cache first
+    let interval = null
+    let step = 0
+    if (_bgFetchLoading) {
+      setEstimate(ESTIMATES[0])
+      interval = setInterval(() => {
+        step++
+        const next = ESTIMATES[step] || 'Processing...'
+        setEstimate(next)
+      }, 5000)
+    } else {
+      setEstimate('Starting search...')
+    }
+    return () => { if (interval) clearInterval(interval) }
+  }, [_bgFetchLoading])
+
+  // On mount: check cache → if valid use it
+  useEffect(() => {
     try {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) {
         const { timestamp, result } = JSON.parse(cached)
         if (Date.now() - timestamp < CACHE_DURATION) {
           _bgFetchResult = result
+          setHasStartedSearch(true)
           forceUpdate(n => n + 1)
-          return // Cache valid, don't fetch
         }
       }
     } catch {
       localStorage.removeItem(CACHE_KEY)
     }
-
-    // No valid cache — start fetch (won't duplicate if already running)
-    if (!_bgFetchLoading && user) {
-      startBackgroundFetch(user)
-    }
   }, [])
 
-  const handleRefresh = useCallback(() => {
-    if (user) {
-      _bgFetchResult = null
-      _bgFetchError = null
-      localStorage.removeItem(CACHE_KEY)
+  const startInitialSearch = () => {
+    if (!_bgFetchLoading && user) {
+      setHasStartedSearch(true)
       startBackgroundFetch(user)
     }
+  }
+
+  const handleRefresh = useCallback(() => {
+    if (!user) return
+
+    // Enforce 30-minute rule
+    try {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const { timestamp } = JSON.parse(cached)
+        const elapsed = Date.now() - timestamp
+        if (elapsed < CACHE_DURATION) {
+          const remainingMins = Math.ceil((CACHE_DURATION - elapsed) / 60000)
+          alert(`Search cooldown: Please wait ${remainingMins} more minute(s) before refreshing, to save server resources.`)
+          return
+        }
+      }
+    } catch {}
+
+    _bgFetchResult = null
+    _bgFetchError = null
+    localStorage.removeItem(CACHE_KEY)
+    setLoadingSeconds(0)
+    startBackgroundFetch(user)
   }, [user])
 
   const data = _bgFetchResult
@@ -151,6 +195,60 @@ export default function EventsPage() {
     return profileMessages[key] || "Personalised events for you"
   }, [data])
 
+  // ── LANDING STATE ────────────────────────────────────────────────────────
+  if (!hasStartedSearch && !data && !loading) {
+    return (
+      <div className="bg-[#FAFAF5] min-h-[calc(100dvh-4rem)] flex items-center justify-center p-6 animate-fade-in">
+        <div className="max-w-xl w-full text-center">
+          <div className="mb-8 relative">
+            <div className="w-24 h-24 bg-forest-100 rounded-[32px] flex items-center justify-center mx-auto transform rotate-3 shadow-lg">
+              <Sparkles className="text-forest-600 animate-pulse" size={40} />
+            </div>
+            <div className="absolute -top-2 -right-4 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-amber-200">
+              AI Powered
+            </div>
+          </div>
+          
+          <h1 className="font-display font-bold text-4xl text-bark-700 mb-4 leading-tight">
+            Discover What's Happening in Agri
+          </h1>
+          <p className="text-bark-500 font-body text-lg mb-10 max-w-sm mx-auto leading-relaxed">
+            Let our AI Agent crawl the web and uncover the best expos, workshops, and opportunities tailored specifically to your profile.
+          </p>
+          
+          <button 
+            id="start-event-search"
+            onClick={startInitialSearch}
+            className="group relative bg-[#2D6A4F] text-white px-10 py-5 rounded-2xl font-display font-bold text-xl hover:bg-forest-700 transition-all duration-300 shadow-xl shadow-forest-500/20 hover:-translate-y-1 active:scale-95"
+          >
+            <div className="flex items-center gap-3">
+              <Search size={24} className="group-hover:rotate-12 transition-transform" />
+              <span>Search for Events</span>
+            </div>
+            <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+          
+          <div className="mt-12 flex items-center justify-center gap-6 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+            <div className="text-center">
+              <div className="text-lg font-bold">100+</div>
+              <div className="text-[10px] uppercase font-bold tracking-tighter">Events</div>
+            </div>
+            <div className="w-px h-6 bg-bark-200" />
+            <div className="text-center">
+              <div className="text-lg font-bold">Daily</div>
+              <div className="text-[10px] uppercase font-bold tracking-tighter">Updates</div>
+            </div>
+            <div className="w-px h-6 bg-bark-200" />
+            <div className="text-center">
+              <div className="text-lg font-bold">Free</div>
+              <div className="text-[10px] uppercase font-bold tracking-tighter">Access</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ── LOADING STATE ────────────────────────────────────────────────────────
   if (loading && !data) {
     return (
@@ -160,11 +258,17 @@ export default function EventsPage() {
             <div className="h-10 w-48 bg-cream-200 rounded-lg shimmer mb-2" />
             <div className="h-5 w-64 bg-cream-200 rounded-lg shimmer" />
           </div>
-          <div className="bg-forest-600 rounded-2xl p-6 mb-8 text-white shadow-xl flex items-center gap-4">
-            <Loader2 size={28} className="animate-spin flex-shrink-0" />
-            <div>
-              <p className="font-display text-lg font-bold">Searching for events near you…</p>
-              <p className="text-sm text-forest-100 mt-1 font-body">Our AI agent is crawling the web for personalised agricultural events. This may take a moment.</p>
+          <div className="bg-forest-600 rounded-2xl p-6 mb-8 text-white shadow-xl flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <Loader2 size={28} className="animate-spin flex-shrink-0" />
+              <div>
+                <p className="font-display text-lg font-bold">Searching for events near you…</p>
+                <p className="text-sm text-forest-100 mt-1 font-body">Our AI agent is crawling the web for personalised agricultural events. This may take a moment.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+              <span className="text-xs uppercase tracking-wider font-bold">Progress: </span>
+              <span className="font-mono text-sm">{estimate}</span>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

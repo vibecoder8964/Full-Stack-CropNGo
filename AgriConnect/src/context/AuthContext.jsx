@@ -21,7 +21,14 @@ export function AuthProvider({ children }) {
   })
 
   const [isOnboarded, setIsOnboarded] = useState(() => {
-    return localStorage.getItem(ONBOARDED_KEY) === 'true'
+    const lsVal = localStorage.getItem(ONBOARDED_KEY) === 'true'
+    try {
+      const storedUser = localStorage.getItem(STORAGE_KEY)
+      const parsed = storedUser ? JSON.parse(storedUser) : null
+      return lsVal || (parsed && (parsed.isOnboarded === true || !!(parsed.role && parsed.location)))
+    } catch {
+      return lsVal
+    }
   })
 
   useEffect(() => {
@@ -62,11 +69,18 @@ export function AuthProvider({ children }) {
       throw new Error("This contact is already registered.")
     }
 
+    // 5. Hash Password
+    const encoder = new TextEncoder()
+    const dataBuf = encoder.encode(password)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuf)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
     const newUser = {
       username: username,
       email: emailOrPhone,
       phone: isPhone ? emailOrPhone : '', // populate correctly
-      password: password,
+      password: hashedPassword,
       role: userData.role || null,
       web_search: true,
       createdAt: new Date().toISOString(),
@@ -107,7 +121,13 @@ export function AuthProvider({ children }) {
       userDoc = ds.data()
     }
 
-    if (userDoc.password !== password) {
+    const encoder = new TextEncoder()
+    const dataBuf = encoder.encode(password)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuf)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+    if (userDoc.password !== hashedPassword && userDoc.password !== password) {
       throw new Error("Incorrect password.")
     }
 
@@ -131,6 +151,25 @@ export function AuthProvider({ children }) {
     if (!user) return
     const dr = doc(db, 'users', user.username)
     await updateDoc(dr, updates)
+    
+    // Global sync: update all user's listings if profile info changed
+    const syncFields = ['username', 'role', 'latitude', 'longitude']
+    const hasSyncFields = Object.keys(updates).some(k => syncFields.includes(k))
+    
+    if (hasSyncFields) {
+      const q = query(collection(db, 'listings'), where('sellerId', '==', user.username))
+      const qs = await getDocs(q)
+      const batchPromises = qs.docs.map(d => {
+        const listingUpdates = {}
+        if (updates.username) listingUpdates.sellerName = updates.username
+        if (updates.role) listingUpdates.sellerRole = updates.role
+        if (updates.latitude !== undefined) listingUpdates.latitude = updates.latitude
+        if (updates.longitude !== undefined) listingUpdates.longitude = updates.longitude
+        return updateDoc(d.ref, listingUpdates)
+      })
+      await Promise.all(batchPromises)
+    }
+
     setUser(prev => {
       const updated = { ...prev, ...updates }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))

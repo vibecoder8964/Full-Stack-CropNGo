@@ -1,5 +1,6 @@
-def format_demand(grade: str, score: int, explanation: str) -> str:
-    return f"Grade: {grade} ({score}/100)\nExplanation: {explanation}"
+def format_demand(grade: str, score: int, explanation: str, product: str = "") -> str:
+    header = f"**{product}** — " if product else ""
+    return f"{header}Grade: {grade} ({score}/100)\nExplanation: {explanation}"
 
 def format_suitability(suitability: str, reason: str, suggestion: str) -> str:
     return f"Suitability: {suitability}\nReason: {reason}\nSuggestion: {suggestion}"

@@ -31,7 +31,8 @@ export default function ShopPage() {
   const [filters, setFilters] = useState({ minPrice: '', maxPrice: '', category: '', maxDistance: '', minRating: 0 })
   const [addOpen, setAddOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [newListing, setNewListing] = useState({ name: '', description: '', price: '', category: '', image: null, isDraft: false, tags: [] })
+  const [newListing, setNewListing] = useState({ name: '', description: '', price: '', category: '', unit: '', image: null, isDraft: false, tags: [] })
+  const [showOtherUnit, setShowOtherUnit] = useState(false)
 
   // ── Firestore listings state ─────────────────────────────────────────────
   const [allListings, setAllListings] = useState([])
@@ -60,9 +61,27 @@ export default function ShopPage() {
 
   const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }))
 
+  // ── Haversine Distance Helper ───────────────────────────────────────────
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    // Arbitrary default: KL center if any coordinates are missing
+    const dLat1 = lat1 ?? 3.1390
+    const dLon1 = lon1 ?? 101.6869
+    const dLat2 = lat2 ?? 3.1390
+    const dLon2 = lon2 ?? 101.6869
+    
+    const R = 6371 // km
+    const rad = Math.PI / 180
+    const dLat = (dLat2 - dLat1) * rad
+    const dLon = (dLon2 - dLon1) * rad
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(dLat1 * rad) * Math.cos(dLat2 * rad) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
   // ── Upload image to Firebase Storage and return download URL ─────────────
   const uploadImage = async (base64DataUrl) => {
-    // Convert base64 data URL to blob
     const res = await fetch(base64DataUrl)
     const blob = await res.blob()
     const fileName = `listings/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`
@@ -77,71 +96,116 @@ export default function ShopPage() {
     if (!newListing.category) return alert('Please select a category.')
 
     setPublishing(true)
+    
+    // IF DRAFT: Save to local storage only
+    if (newListing.isDraft) {
+      localStorage.setItem('agriconnect_shop_draft', JSON.stringify({ ...newListing, tags: newListing.tags }))
+      setAddOpen(false)
+      setPublishing(false)
+      return
+    }
+
+    // FAST PROCESS: Close modal optimistically
+    const formToSubmit = { ...newListing }
+    setAddOpen(false)
+    setNewListing({ name: '', description: '', price: '', category: '', unit: '', image: null, isDraft: false, tags: [] })
+    setShowOtherUnit(false)
+    localStorage.removeItem('agriconnect_shop_draft')
+
     try {
-      // Image upload is optional — if it fails, we still publish without an image
       let imageUrl = null
-      if (newListing.image) {
+      if (formToSubmit.image) {
         try {
-          imageUrl = await uploadImage(newListing.image)
+          imageUrl = await uploadImage(formToSubmit.image)
         } catch (imgErr) {
           console.warn('Image upload failed, publishing without image:', imgErr)
-          // Continue without image — don't block the listing
         }
       }
 
       const listingData = {
         tab,
-        name: newListing.name.trim(),
-        description: newListing.description.trim(),
-        price: newListing.price ? parseFloat(newListing.price) : null,
-        unit: tab === 'Wanted' ? null : 'per unit',
-        category: newListing.category,
+        name: formToSubmit.name.trim(),
+        description: formToSubmit.description.trim(),
+        price: formToSubmit.price ? parseFloat(formToSubmit.price) : null,
+        unit: formToSubmit.unit || 'piece',
+        category: formToSubmit.category || 'General',
         imageUrl: imageUrl,
         sellerId: user.username,
         sellerName: user.username,
         sellerRole: user.role || 'Farmer',
+        latitude: user.latitude || null,
+        longitude: user.longitude || null,
         rating: 0,
         reviewCount: 0,
-        distance: 0,
-        isDraft: newListing.isDraft,
-        tags: newListing.tags,
+        isDraft: false, // It's published now
+        tags: formToSubmit.tags,
         createdAt: new Date().toISOString(),
       }
 
       await addDoc(collection(db, 'listings'), listingData)
-
-      // Reset form and close modal
-      setNewListing({ name: '', description: '', price: '', category: '', image: null, isDraft: false, tags: [] })
-      setAddOpen(false)
-
-      // Refresh listings
       await fetchListings()
+
+      // ── SEO Site Publisher (fire-and-forget) ──────────────────────────
+      // Triggers GitHub Pages site creation/update for this farmer.
+      // Non-blocking: product publish already succeeded above.
+      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      fetch(`${API_URL}/publish-site`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ farmer_id: user.username })
+      }).then(r => r.json()).then(res => {
+        if (res.url) console.log('🌐 SEO site published:', res.url)
+      }).catch(e => console.warn('SEO site publish (non-critical):', e))
     } catch (e) {
       console.error('Failed to publish listing:', e)
-      const errorDetail = e?.code === 'permission-denied'
-        ? 'Permission denied. Check your Firestore security rules.'
-        : e?.code === 'unavailable'
-          ? 'Firestore is temporarily unavailable. Please try again in a moment.'
-          : `Error: ${e.message || 'Unknown error'}`
-      alert(`Failed to publish listing.\n${errorDetail}`)
+      alert('Failed to publish listing. Please check your connection.')
     }
     setPublishing(false)
   }
 
+  // Load draft when modal opens
+  useEffect(() => {
+    if (addOpen) {
+      const saved = localStorage.getItem('agriconnect_shop_draft')
+      if (saved) {
+        try {
+          setNewListing(JSON.parse(saved))
+        } catch (e) {
+          console.error('Failed to parse shop draft:', e)
+        }
+      }
+    }
+  }, [addOpen])
+
   // ── Filter + Sort ────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let items = allListings.filter(l => l.tab === tab && !l.isDraft)
-    if (search) items = items.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.category.toLowerCase().includes(search.toLowerCase()))
+    
+    // Calculate dynamic distance for each item relative to current user
+    items = items.map(l => ({
+      ...l,
+      distance: getDistance(user?.latitude, user?.longitude, l.latitude, l.longitude)
+    }))
+
+    if (search) {
+      const s = search.toLowerCase()
+      items = items.filter(l => 
+        l.name.toLowerCase().includes(s) || 
+        l.category.toLowerCase().includes(s) ||
+        l.tags?.some(t => t.toLowerCase().includes(s))
+      )
+    }
     if (filters.category) items = items.filter(l => l.category === filters.category)
     if (filters.minPrice) items = items.filter(l => l.price >= parseFloat(filters.minPrice))
     if (filters.maxPrice) items = items.filter(l => l.price <= parseFloat(filters.maxPrice))
     if (filters.maxDistance) items = items.filter(l => (l.distance || 0) <= parseFloat(filters.maxDistance))
     if (filters.minRating > 0) items = items.filter(l => (l.rating || 0) >= filters.minRating)
+    
     if (sort === 'nearest') items = [...items].sort((a, b) => (a.distance || 0) - (b.distance || 0))
     else if (sort === 'highest_rated') items = [...items].sort((a, b) => (b.rating || 0) - (a.rating || 0))
     else if (sort === 'lowest_price') items = [...items].sort((a, b) => (a.price ?? 9999) - (b.price ?? 9999))
     return items
-  }, [tab, search, sort, filters, allListings])
+  }, [tab, search, sort, filters, allListings, user])
 
   const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== 0).length
 
@@ -317,14 +381,40 @@ export default function ShopPage() {
               <input type="number" value={newListing.price} onChange={e => setNewListing(l => ({ ...l, price: e.target.value }))} className="input-field" placeholder="0.00" />
             </div>
             <div>
-              <label className="label">Category</label>
-              <select value={newListing.category} onChange={e => setNewListing(l => ({ ...l, category: e.target.value }))} className="input-field">
-                <option value="">Select...</option>
-                {(CATEGORIES[tab] ?? []).map(c => <option key={c} value={c}>{c}</option>)}
+              <label className="label">Unit</label>
+              <select 
+                value={showOtherUnit ? 'other' : newListing.unit} 
+                onChange={e => {
+                  if (e.target.value === 'other') {
+                    setShowOtherUnit(true)
+                    setNewListing(l => ({ ...l, unit: '' }))
+                  } else {
+                    setShowOtherUnit(false)
+                    setNewListing(l => ({ ...l, unit: e.target.value }))
+                  }
+                }} 
+                className="input-field"
+              >
+                <option value="">Select unit...</option>
+                {['kg', 'g', 'tonne', 'piece', 'dozen', 'tray', 'set', 'pair', 'bag', 'bottle', 'other'].map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
               </select>
             </div>
           </div>
-          <TagInput label="Tags / Keywords" options={[]} selected={newListing.tags} onChange={tags => setNewListing(l => ({ ...l, tags }))} allowOther placeholder="Add tags..." />
+          {showOtherUnit && (
+            <div className="animate-slide-down">
+              <label className="label italic text-bark-400">Specify other unit</label>
+              <input 
+                type="text" 
+                value={newListing.unit} 
+                onChange={e => setNewListing(l => ({ ...l, unit: e.target.value }))} 
+                className="input-field" 
+                placeholder="e.g. box, crate..." 
+              />
+            </div>
+          )}
+          <TagInput label="Tags/Keywords (This is important to gain exposure and SEO)" options={[]} selected={newListing.tags} onChange={tags => setNewListing(l => ({ ...l, tags }))} allowOther placeholder="Add tags..." />
           {/* Draft toggle */}
           <div className="flex items-center gap-3">
             <button
@@ -336,16 +426,25 @@ export default function ShopPage() {
             </button>
             <span className="text-sm font-body text-bark-600">{newListing.isDraft ? 'Save as Draft' : 'Publish Immediately'}</span>
           </div>
-          <button 
-            className="btn-primary w-full flex items-center justify-center gap-2" 
-            onClick={publishListing}
-            disabled={publishing}
-          >
-            {publishing 
-              ? <><Loader2 size={16} className="animate-spin" /> Publishing...</>
-              : newListing.isDraft ? 'Save Draft' : 'Publish Listing'
-            }
-          </button>
+          <div className="flex gap-3 mt-1">
+            <button 
+              className="btn-secondary flex-1" 
+              onClick={() => setAddOpen(false)}
+              disabled={publishing}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn-primary flex-[2] flex items-center justify-center gap-2" 
+              onClick={publishListing}
+              disabled={publishing}
+            >
+              {publishing 
+                ? <><Loader2 size={16} className="animate-spin" /> Publishing...</>
+                : newListing.isDraft ? 'Save Draft' : 'Publish Listing'
+              }
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

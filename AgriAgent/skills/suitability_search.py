@@ -102,8 +102,8 @@ def run_suitability_search(input_data: dict) -> str:
     Assess if this crop is suitable for this location. 
     Output must exactly match this JSON schema including:
     - suitability: Must be one of "Very Suitable", "Suitable", "Medium Risk", "Risky"
-    - reason: Why this rating based on soil, climate, rainfall context.
-    - suggestion: What the farmer should do or watch out for.
+    - reason: Why this rating based on soil, climate, rainfall context. Max length 200 words, minimum 30 words. Keep it clear and concise.
+    - suggestion: What the farmer should do or watch out for. Max length 200 words, minimum 30 words. You MUST include a MAXIMUM of 5 external web links if applicable.
     """
     
     response = client.models.generate_content(

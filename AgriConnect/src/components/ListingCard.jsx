@@ -63,7 +63,9 @@ export default function ListingCard({ listing }) {
           
           <div className="flex items-center gap-1 bg-[#F0EBE0] px-2 py-0.5 rounded-full text-bark-500">
             <MapPin size={10} className="opacity-80" />
-            <span className="text-[11px] font-body font-bold">{distance} km</span>
+            <span className="text-[11px] font-body font-bold">
+              {typeof distance === 'number' ? `${distance.toFixed(1)} km` : 'Local'}
+            </span>
           </div>
         </div>
 

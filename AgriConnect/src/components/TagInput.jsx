@@ -74,8 +74,9 @@ export default function TagInput({
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKey}
-          placeholder={selected.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[80px] bg-transparent text-bark-700 placeholder-bark-300 text-sm outline-none py-0.5"
+          disabled={max && selected.length >= max}
+          placeholder={selected.length === 0 ? placeholder : (max && selected.length >= max ? 'Max reached' : '')}
+          className="flex-1 min-w-[80px] bg-transparent text-bark-700 placeholder-bark-300 text-sm outline-none py-0.5 disabled:opacity-50"
         />
       </div>
 

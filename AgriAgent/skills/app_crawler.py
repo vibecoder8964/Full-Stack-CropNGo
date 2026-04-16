@@ -6,12 +6,41 @@ from config import Config
 
 client = genai.Client(api_key=Config.GEMINI_API_KEY)
 
+import os
+import firebase_admin
+from firebase_admin import credentials, firestore
+
 # Firebase REST API 
 PROJECT_ID = "agriconnect-1654b"
 BASE_FS_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents"
 
+FIREBASE_ADMIN_INIT = False
+try:
+    if not firebase_admin._apps:
+        creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+        if creds_json:
+            import json
+            cred = credentials.Certificate(json.loads(creds_json))
+            firebase_admin.initialize_app(cred)
+        else:
+            # Only attempt default if available
+            firebase_admin.initialize_app()
+    db = firestore.client()
+    FIREBASE_ADMIN_INIT = True
+except Exception as e:
+    print(f"Firebase Admin Init Error (Fallback to REST): {e}")
+
 def fetch_all_from_firestore(collection_name: str) -> list:
-    """Fetches all documents from a Firestore collection via REST"""
+    """Fetches all documents from a Firestore collection using Admin SDK (or REST fallback)"""
+    if FIREBASE_ADMIN_INIT:
+        try:
+            docs = db.collection(collection_name).stream()
+            return [doc.to_dict() for doc in docs]
+        except Exception as e:
+            print(f"Firestore Admin Fetch Error ({collection_name}): {e}")
+            return []
+            
+    # Fallback to REST
     try:
         resp = requests.get(f"{BASE_FS_URL}/{collection_name}", timeout=10)
         data = resp.json()
@@ -20,7 +49,6 @@ def fetch_all_from_firestore(collection_name: str) -> list:
         results = []
         for doc in data["documents"]:
             fields = doc.get("fields", {})
-            # Simplify firestore structure: { 'name': {'stringValue': 'foo'} } -> { 'name': 'foo' }
             flat = {}
             for k, v in fields.items():
                 if 'stringValue' in v: flat[k] = v['stringValue']
@@ -30,7 +58,7 @@ def fetch_all_from_firestore(collection_name: str) -> list:
             results.append(flat)
         return results
     except Exception as e:
-        print(f"Firestore Fetch Error ({collection_name}): {e}")
+        print(f"Firestore REST Fetch Error ({collection_name}): {e}")
         return []
 
 def extract_search_keywords(question: str) -> list:
@@ -67,7 +95,7 @@ def search_shop_products(question: str) -> list:
                     "name": p.get("name"),
                     "price": p.get("price"),
                     "description": p.get("description"),
-                    "link": "https://agriconnect-1654b.web.app/app/shop" # UI deep link to shop
+                    "link": f"https://agriconnect-1654b.web.app/app/profile/{p.get('sellerId', '')}" 
                 })
 
     # 2. Search Users

@@ -8,11 +8,13 @@ import ImageUploader from '../../components/ImageUploader'
 import UserCard from '../../components/UserCard'
 import StarRating from '../../components/StarRating'
 import { Send, Bot, Loader2, Sprout, Search, WifiOff, ArrowUp } from 'lucide-react'
+import { db } from '../../firebase'
+import { collection, addDoc } from 'firebase/firestore'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const getApiUrl = () => import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-const CHAT_STORAGE_KEY = 'agriconnect_chat_history'
+const CHAT_STORAGE_KEY_PREFIX = 'agriconnect_chat_history_'
 
 const parseMarkdown = (text) => {
   if (!text) return { __html: '' }
@@ -26,24 +28,29 @@ const parseMarkdown = (text) => {
 
 // ── AI Chat Shell (Issue #7: persists chat across refresh/navigation) ──────
 function AIChat({ role }) {
+  const { user, updateUser } = useAuth()
   const initMessages = [{ role: 'assistant', text: `Hello! I am your AI assistant. How can I help you today?` }]
+  const chatKey = `agriconnect_chat_history_${user?.username || 'anon'}`
+
   const [messages, setMessages] = useState(() => {
     try {
-      const stored = localStorage.getItem(CHAT_STORAGE_KEY)
+      const stored = localStorage.getItem(chatKey)
       if (stored) return JSON.parse(stored)
     } catch {}
     return initMessages
   })
+  
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [backendOnline, setBackendOnline] = useState(null)
   const endRef = useRef(null)
-  const { user, updateUser } = useAuth()
 
   // Persist chat history to localStorage
   useEffect(() => {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages))
-  }, [messages])
+    if (user?.username) {
+      localStorage.setItem(chatKey, JSON.stringify(messages))
+    }
+  }, [messages, chatKey, user?.username])
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -74,8 +81,17 @@ function AIChat({ role }) {
       const aiText = data.response || "No response received."
       setMessages(m => [...m, { role: 'assistant', text: aiText }])
       setBackendOnline(true)
-      const qaString = `\n--- AI History ---\nQuestion: ${userText}\nAnswer: ${aiText}`
-      await updateUser({ description: (user.description || "") + qaString })
+      
+      // Save to history collection instead of description
+      try {
+        await addDoc(collection(db, 'users', user.username, 'history'), {
+          question: userText,
+          answer: aiText,
+          timestamp: new Date().toISOString()
+        })
+      } catch (err) {
+        console.warn("Failed to save chat history to database:", err)
+      }
     } catch (e) {
       setBackendOnline(false)
       setMessages(m => [...m, { role: 'assistant', text: `**Could not connect to the AI agent.**\n\nThe backend at \`${API_URL}\` is not reachable.` }])
@@ -85,7 +101,7 @@ function AIChat({ role }) {
 
   const clearChat = () => {
     setMessages(initMessages)
-    localStorage.removeItem(CHAT_STORAGE_KEY)
+    localStorage.removeItem(chatKey)
   }
 
   const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
@@ -166,11 +182,26 @@ function WebSearchSelector({ value, onChange }) {
 // ── Issue #3: Farmer Suitability Checker (now uses FarmerSearch format) ────
 function FarmerAI() {
   const { user, updateUser } = useAuth()
-  const [form, setForm] = useState({ plant: '', place: '', landSize: '', landUnit: 'acres', tools: [], soilPhoto: null })
-  const [analysed, setAnalysed] = useState(false)
+  
+  const CACHE_KEY = 'agriconnect_farmer_cache'
+  const loadCache = () => {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY)
+      if (stored) return JSON.parse(stored)
+    } catch {}
+    return null
+  }
+  const cached = loadCache()
+
+  const [form, setForm] = useState(cached?.form || { plant: '', place: '', landSize: '', landUnit: 'acres', tools: [], soilPhoto: null })
+  const [analysed, setAnalysed] = useState(cached?.analysed || false)
+  const [aiResponse, setAiResponse] = useState(cached?.aiResponse || '')
   const [loading, setLoading] = useState(false)
-  const [aiResponse, setAiResponse] = useState('')
   const formRef = useRef(null)
+
+  useEffect(() => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ form, analysed, aiResponse }))
+  }, [form, analysed, aiResponse])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -189,7 +220,8 @@ function FarmerAI() {
           description: user.description || '',
           role: 'Farmer',
           web_search: user.web_search ?? true,
-          question
+          question,
+          image_data: form.soilPhoto
         })
       })
       const data = await response.json()
@@ -281,12 +313,27 @@ function FarmerAI() {
 // ── Issue #4: Vendor — Find Farmers Fast + Web Search ─────────────────────
 function VendorAI() {
   const { user, updateUser } = useAuth()
-  const [crops, setCrops] = useState([])
-  const [searched, setSearched] = useState(false)
+  
+  const CACHE_KEY = 'agriconnect_vendor_cache'
+  const loadCache = () => {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY)
+      if (stored) return JSON.parse(stored)
+    } catch {}
+    return null
+  }
+  const cached = loadCache()
+
+  const [crops, setCrops] = useState(cached?.crops || [])
+  const [searched, setSearched] = useState(cached?.searched || false)
+  const [webResults, setWebResults] = useState(cached?.webResults || '')
   const [loading, setLoading] = useState(false)
-  const [webResults, setWebResults] = useState('')
   const [webLoading, setWebLoading] = useState(false)
   const formRef = useRef(null)
+
+  useEffect(() => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ crops, searched, webResults }))
+  }, [crops, searched, webResults])
 
   const farmers = mockUsers.filter(u => u.role === 'Farmer')
 
@@ -343,7 +390,7 @@ function VendorAI() {
       <p className="text-[15px] text-bark-500 font-body mb-6">Describe what you need, and AI will find the best matching farmers{user.web_search ? ' and web suppliers' : ''}.</p>
 
       <div ref={formRef} className="card p-6 flex flex-col gap-5 mb-8 border-t-0 shadow-md">
-        <TagInput label="Type of crop" options={PREDEFINED_CROPS} selected={crops} onChange={setCrops} allowOther placeholder="Search crops..." />
+        <TagInput label="Type of crop" options={PREDEFINED_CROPS} selected={crops} onChange={setCrops} allowOther placeholder="Search crops..." max={5} />
         <button id="ai-vendor-search" onClick={search} disabled={loading}
           className="btn-primary w-full flex items-center justify-center gap-2">
           {loading ? <><Loader2 size={16} className="animate-spin" /> Searching…</> : '🔍 Find Farmers'}
@@ -386,11 +433,26 @@ function VendorAI() {
 // ── Issue #6: Supplier — Equipment Demand Insights (wired to backend) ─────
 function SupplierAI() {
   const { user, updateUser } = useAuth()
-  const [equipments, setEquipments] = useState([])
+  
+  const CACHE_KEY = 'agriconnect_supplier_cache'
+  const loadCache = () => {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY)
+      if (stored) return JSON.parse(stored)
+    } catch {}
+    return null
+  }
+  const cached = loadCache()
+
+  const [equipments, setEquipments] = useState(cached?.equipments || [])
+  const [result, setResult] = useState(cached?.result || '')
+  const [searched, setSearched] = useState(cached?.searched || false)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState('')
-  const [searched, setSearched] = useState(false)
   const formRef = useRef(null)
+
+  useEffect(() => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ equipments, result, searched }))
+  }, [equipments, result, searched])
 
   const analyse = async () => {
     if (equipments.length === 0) return alert('Please select at least one equipment.')
@@ -436,7 +498,7 @@ function SupplierAI() {
 
       <div ref={formRef} className="card p-6 flex flex-col gap-4 mb-4 shadow-md overflow-visible relative z-20">
         <TagInput label="Select Equipments" options={PREDEFINED_TOOLS} selected={equipments}
-          onChange={setEquipments} allowOther placeholder="e.g. Tractor, Irrigation" />
+          onChange={setEquipments} allowOther placeholder="e.g. Tractor, Irrigation" max={5} />
         <button onClick={analyse} disabled={loading}
           className="btn-primary flex items-center justify-center gap-2">
           {loading ? <><Loader2 size={16} className="animate-spin" /> Analysing…</> : <><Search size={16} /> Get Demand Analysis</>}

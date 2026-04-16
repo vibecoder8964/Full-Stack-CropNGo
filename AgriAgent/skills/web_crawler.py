@@ -1,7 +1,7 @@
 from ddgs import DDGS
 import httpx
 
-def search_web(query: str, max_results: int = 3) -> list:
+def search_web(query: str, max_results: int = 5) -> list:
     """Run web crawler searching for external sources using ddgs"""
     results = []
     try:

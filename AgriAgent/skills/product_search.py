@@ -70,7 +70,7 @@ def run_product_search(input_data: dict, specified_items: list[str] = None) -> s
             if url not in seen_urls:
                 seen_urls.add(url)
                 unique_web.append(r)
-        web_results = unique_web[:25]  # max 25
+        web_results = unique_web[:5]  # max 5 web links
         
         # If we still have fewer than 5, do a broader search
         if len(web_results) < 5:

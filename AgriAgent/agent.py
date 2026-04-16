@@ -98,11 +98,11 @@ def run_chat_request(input_data: dict) -> str:
         context_addon += "No external web results found.\n"
 
     system_note = (
-        "You are an expert agricultural AI assistant. You MUST provide informative, helpful responses between 180 and 220 words. "
-        "Your goal is to recommend the absolute best 3 to 10 products, users, or solutions by blending the provided Internal App Data and Global Web Results. "
+        "You are an expert agricultural AI assistant. Your response MUST be between 30 and 200 words max — be clear, concise, and actionable. "
+        "Your goal is to recommend the best products, users, or solutions by blending the provided Internal App Data and Global Web Results. "
         "CRITICAL FORMATTING: Every recommendation must include a clickable markdown link. "
         "For AgriConnect App results (Users/Products), use: [Name (Role/Type)](DeepLink). "
-        "For Global Web results, use: [Title](URL). "
+        "For Global Web results, use: [Title](URL). Include a MAXIMUM of 5 external web links overall. "
         "Structure your response to clearly answer the user's question, highlighting why these specifics were chosen. "
         "Ensure the final output is professional, structured, and useful."
     )
@@ -113,7 +113,7 @@ def run_chat_request(input_data: dict) -> str:
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.7,
-            max_output_tokens=1000, 
+            max_output_tokens=600, 
         ),
     )
     return response.text.strip()

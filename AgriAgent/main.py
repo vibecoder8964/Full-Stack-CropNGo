@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -5,6 +7,8 @@ from pydantic import BaseModel
 from agent import process_agent_request, run_chat_request
 from skills.event_crawler import run_event_search
 from skills.event_crawler.endpoint import EventSearchRequest
+
+logger = logging.getLogger("agriconnect")
 
 app = FastAPI(title="AgriAgent API")
 
@@ -41,6 +45,7 @@ class InputPayload(BaseModel):
     role: str
     question: str
     web_search: Optional[bool] = False
+    image_data: Optional[str] = None
 
 import time
 from google.genai.models import Models
@@ -101,6 +106,25 @@ def chat_endpoint(payload: InputPayload):
         raise e
 
 
+class PublishSitePayload(BaseModel):
+    farmer_id: str
+
+@app.post("/publish-site")
+def publish_site_endpoint(payload: PublishSitePayload):
+    """
+    Non-blocking SEO site publisher.
+    Called by the frontend after a product is published to Firestore.
+    Creates or updates the farmer's GitHub Pages SEO site.
+    """
+    try:
+        from services.farmer_site_publisher import publish_farmer_site
+        result = publish_farmer_site(farmer_id=payload.farmer_id)
+        logger.info(f"Site published: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Site publish failed silently: {e}")
+        return {"url": None, "status": "error", "repo": None}
+
 @app.post("/events")
 def events_endpoint(req: EventSearchRequest):
     """
@@ -119,6 +143,53 @@ def events_endpoint(req: EventSearchRequest):
     except Exception as e:
         print(f"[/events] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi import WebSocket, WebSocketDisconnect
+import json
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: str):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: str, to_user_id: str):
+        if to_user_id in self.active_connections:
+            try:
+                await self.active_connections[to_user_id].send_text(message)
+            except Exception as e:
+                print(f"Error sending to {to_user_id}: {e}")
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/chat/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # E2E Payload format: {"to": "username", "msg": "encryptedPayload", "timestamp": "...", "iv": "..."}
+            parsed = json.loads(data)
+            to_user = parsed.get("to")
+            if to_user:
+                payload = {
+                    "from": user_id,
+                    "msg": parsed.get("msg"),
+                    "timestamp": parsed.get("timestamp"),
+                    "iv": parsed.get("iv")
+                }
+                await manager.send_personal_message(json.dumps(payload), to_user)
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
+    except Exception as e:
+        print(f"WebSocket Error: {e}")
+        manager.disconnect(user_id)
 
 if __name__ == "__main__":
     import uvicorn

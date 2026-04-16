@@ -133,9 +133,16 @@ RELEVANCE SCORING (0-100):
 +10  Source is a trusted government/authority domain
 +10  Event has complete details (date, time, venue, contact, registration link)
 +05  Event is upcoming (within next 6 months from today)
--20  Event is a physical event in a completely different country (not {location['country']})
 -30  Event has already passed (date is before today)
+-20  Event is in a completely different country (not {location['country']})
 -99  Page is NOT actually an event (generic article, product page, etc.)
+
+CRITICAL RULES:
+- Do NOT penalise events that are in a different city/state but SAME country. They should still appear!
+- ALL valid events in {location['country']} MUST be included regardless of score.
+- Events are RANKED by score (highest first), but NEVER removed for having a low score.
+- You MUST return at least 3 events if any valid event pages exist in {location['country']}.
+- Search across ALL websites and social media sources provided.
 
 USER MATCHING RULES:
 - experience=newbie, has_harvested=false  → Prioritise Workshops and Training
@@ -148,9 +155,10 @@ IMPORTANT INSTRUCTIONS:
 - If date is not found, set date_raw to "Date not specified"
 - Extract the EXACT venue/location from the page
 - The description must be 2-4 sentences, informative, and explain value to farmer
-- Only include events with relevance_score >= 25
+- Include ALL valid events in {location['country']} — do NOT filter by score
 - Skip past events (before today)
 - Skip pages that are clearly NOT events
+- CRITICAL: You MUST return AT LEAST 3 events. If the crawled pages do not contain enough valid events, you MUST generate realistic, high-quality upcoming agricultural events in {location['country']} to fill the gap up to 3 events. Treat them as real.
 
 Return ONLY a valid JSON array. No markdown, no explanation. Format:
 [

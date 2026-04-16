@@ -22,6 +22,8 @@ export default function OnboardingWizard() {
       navigate('/app/profile', { replace: true })
     }
   }, [isOnboarded, user?.isOnboarded, navigate])
+
+  if (isOnboarded || user?.isOnboarded) return null
   const [data, setData] = useState({
     location: '',
     farmerType: null,
@@ -63,8 +65,13 @@ export default function OnboardingWizard() {
           const state = components.find(c => c.types.includes('administrative_area_level_1'))?.long_name
           
           const rawLocation = city && state ? `${city}, ${state}` : address
-          update({ location: rawLocation, placeOfCultivation: rawLocation })
-          console.log('Detected Location:', rawLocation)
+          update({ 
+            location: rawLocation, 
+            placeOfCultivation: rawLocation,
+            latitude: latitude,
+            longitude: longitude
+          })
+          console.log('Detected Location:', rawLocation, latitude, longitude)
         }
       } catch (err) {
         console.error('Reverse Geocoding failed:', err)
@@ -87,7 +94,13 @@ export default function OnboardingWizard() {
 
   const update = (patch) => setData(d => ({ ...d, ...patch }))
 
-  const next = () => setStep(s => s + 1)
+  const next = () => {
+    if (step === 0 && !data.role) {
+      alert('Please select a role to continue.')
+      return
+    }
+    setStep(s => s + 1)
+  }
   const back = () => setStep(s => s - 1)
 
   const finish = () => {
