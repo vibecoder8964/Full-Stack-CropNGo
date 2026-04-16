@@ -95,6 +95,8 @@ def run_suitability_search(input_data: dict) -> str:
     
     # 4. Assess Suitability via Gemini
     prompt = f"""
+    {Config.SYSTEM_PROMPT_CONSTRAINT}
+
     Crop: {ext.crop}
     Location: {ext.location} (Lat: {lat}, Lon: {lon})
     Climate Data: {weather_data}

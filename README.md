@@ -77,10 +77,28 @@ Follow these steps to run both the frontend and backend locally on your machine.
    
    - Look for the `.env.example` file in the `AgriAgent` folder.
    - **Copy** `.env.example` and rename the new file to exactly `.env` (it might look like a file with no name and just an extension on Windows).
-   - Open your new `.env` file in your code editor and fill in your **Gemini API Key**:
+   - Open your new `.env` file in your code editor and fill in your keys:
      ```env
      GEMINI_API_KEY="your_gemini_api_key_here"
+     
+     # (Optional but Recommended) Firebase Admin Credentials
+     # See Step 1.1 below on how to get this JSON
+     FIREBASE_CREDENTIALS_JSON='{"type": "service_account", ...}'
      ```
+
+---
+
+### Step 1.1: (Highly Recommended) Setup Firebase Admin SDK
+If you see a "Firebase Admin Init Error" in your terminal, it means the backend is falling back to a slower method. To fix this:
+
+1. Go to your [Firebase Console](https://console.firebase.google.com/).
+2. Click on **Project Settings** (the gear icon) -> **Service Accounts**.
+3. Click **Generate New Private Key** -> **Generate Key**. This downloads a `.json` file.
+4. **Method A (Easiest):** Open that `.json` file, copy everything, and paste it into your `AgriAgent/.env` as the `FIREBASE_CREDENTIALS_JSON` variable (make sure it's all on one line or wrapped in single quotes).
+5. **Method B:** Rename the file to `firebase-key.json` and move it into the `AgriAgent/` folder. The app will automatically try to find it.
+
+---
+
 5. Start the backend server:
    ```bash
    uvicorn main:app --reload --port 8000
@@ -191,5 +209,26 @@ Here is the step-by-step guide to safe committing:
    git push -u origin main
    ```
 
-> **Why push `.env.example` and not `.env`?**
-> When your teammates clone this repository, they won't have your passwords. But because you pushed `.env.example`, they can see exactly what keys the app *expects*, and they can create their own local `.env` files safely!
+### 🔄 How to Update & Push Subsequent Changes
+
+Once you've made your first commit and your repository is linked to GitHub, follow these 3 steps whenever you want to save and upload your latest progress:
+
+1. **Stage your changes**:
+   This tells Git which modified files you want to include in your next "save point".
+   ```bash
+   git add .
+   ```
+
+2. **Commit your changes**:
+   This saves a local snapshot of your project with a descriptive note. **You must do this before you can push!**
+   ```bash
+   git commit -m "feat: added notifications and product detail page"
+   ```
+
+3. **Push to GitHub**:
+   This uploads your local "save point" (commit) to the live repository on GitHub.
+   ```bash
+   git push
+   ```
+
+> **Pro Tip**: Always run `git status` before `git add .` to see exactly which files you've modified or added. It helps prevent accidental uploads of files that aren't ready yet!

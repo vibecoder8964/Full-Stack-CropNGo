@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Search, X, CalendarOff, RefreshCw, MapPin, Sparkles, Loader2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import EventCard from '../../components/EventCard'
+import { db } from '../../firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 const FILTERS = ['All', 'Expo', 'Workshop', 'Webinar', 'Competition']
 const CACHE_KEY = 'agriconnect_events_cache'
@@ -47,12 +49,25 @@ function startBackgroundFetch(user) {
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       return res.json()
     })
-    .then(result => {
+    .then(async (result) => {
       if (result.status === 'error') {
         throw new Error(result.message || 'Failed to fetch events')
       }
       _bgFetchResult = result
       _bgFetchError = null
+      
+      // Save events to Firestore to enable Event Notifications
+      if (user?.username && result.all_events) {
+        try {
+          const userRef = doc(db, 'users', user.username)
+          // We fetch the current user doc to not overwrite other fields, 
+          // or we can use { merge: true }
+          await setDoc(userRef, { saved_events: result.all_events }, { merge: true })
+        } catch (err) {
+          console.error("Failed to save events for notifications:", err)
+        }
+      }
+
       // Cache with timestamp
       localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), result }))
       return result

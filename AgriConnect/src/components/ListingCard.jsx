@@ -24,7 +24,10 @@ export default function ListingCard({ listing }) {
   const style = CATEGORY_STYLES[category] || CATEGORY_STYLES.default
 
   return (
-    <div className="card flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden text-left border border-cream-200 mx-auto w-full">
+    <div 
+      onClick={() => navigate(`/app/shop/${listing.id}`)}
+      className="card flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden text-left border border-cream-200 mx-auto w-full cursor-pointer"
+    >
       
       {/* Category Gradient Hero / Product Image */}
       <div 

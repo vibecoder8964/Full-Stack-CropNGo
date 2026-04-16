@@ -19,6 +19,8 @@ class FarmerContextExtraction(BaseModel):
 
 def extract_farmer_context(question: str, image_data: Optional[str] = None) -> FarmerContextExtraction:
     prompt = f"""
+    {Config.SYSTEM_PROMPT_CONSTRAINT}
+    
     Based on this input:
     {question}
     

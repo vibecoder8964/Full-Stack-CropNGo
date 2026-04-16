@@ -17,18 +17,25 @@ BASE_FS_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databa
 FIREBASE_ADMIN_INIT = False
 try:
     if not firebase_admin._apps:
+        # 1. Try environment variable
         creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
         if creds_json:
             import json
             cred = credentials.Certificate(json.loads(creds_json))
             firebase_admin.initialize_app(cred)
+        # 2. Try local file fallback
+        elif os.path.exists("firebase-key.json"):
+            cred = credentials.Certificate("firebase-key.json")
+            firebase_admin.initialize_app(cred)
         else:
-            # Only attempt default if available
+            # 3. Last resort - Default ADC
             firebase_admin.initialize_app()
+            
     db = firestore.client()
     FIREBASE_ADMIN_INIT = True
-except Exception as e:
-    print(f"Firebase Admin Init Error (Fallback to REST): {e}")
+except Exception:
+    print("⚠️  Firebase Admin SDK not fully configured. Using fallback database connection.")
+    # No need to print the messy stack trace to the user, the fallback handles it.
 
 def fetch_all_from_firestore(collection_name: str) -> list:
     """Fetches all documents from a Firestore collection using Admin SDK (or REST fallback)"""

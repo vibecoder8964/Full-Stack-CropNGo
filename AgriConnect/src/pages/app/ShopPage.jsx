@@ -154,7 +154,10 @@ export default function ShopPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ farmer_id: user.username })
       }).then(r => r.json()).then(res => {
-        if (res.url) console.log('🌐 SEO site published:', res.url)
+        if (res.url) {
+          console.log('🌐 SEO site published:', res.url)
+          alert(`Your personalized website has been published at:\n${res.url}`)
+        }
       }).catch(e => console.warn('SEO site publish (non-critical):', e))
     } catch (e) {
       console.error('Failed to publish listing:', e)

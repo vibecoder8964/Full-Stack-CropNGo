@@ -33,6 +33,8 @@ class ExplanationModel(BaseModel):
 
 def generate_demand_explanation(product: str, location: str, web_score: float, app_score: float, final_score: float, grade: str) -> str:
     prompt = f"""
+    {Config.SYSTEM_PROMPT_CONSTRAINT}
+    
     Product: {product}
     Location: {location}
     Web Score (0-100): {web_score}

@@ -46,19 +46,25 @@ def _init_firebase():
 
     try:
         if not firebase_admin._apps:
+            # 1. Try environment variable
             creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
             if creds_json:
                 import json
                 cred = credentials.Certificate(json.loads(creds_json))
                 firebase_admin.initialize_app(cred)
+            # 2. Try local file fallback
+            elif os.path.exists("firebase-key.json"):
+                cred = credentials.Certificate("firebase-key.json")
+                firebase_admin.initialize_app(cred)
             else:
+                # 3. Last resort - Default ADC
                 firebase_admin.initialize_app()
+                
         _db = firestore.client()
         FIREBASE_ADMIN_INIT = True
         log.info("Firebase Admin initialized.")
-    except Exception as e:
-        log.error(f"Firebase Admin init failed: {e}")
-        raise
+    except Exception:
+        log.warning("Firebase Admin SDK not fully configured. Some features may not work without service account keys.")
 
     return _db
 
@@ -151,8 +157,44 @@ def publish_farmer_site(farmer_id: str) -> dict:
                 log.info(f"  → Using fallback image for '{product.get('name')}'")
 
         # ── Step 4: Build slug ────────────────────────────────────────────────
-        slug = _make_slug(farmer_id)
+        base_slug = _make_slug(farmer_id)
+        
+        # Build product slug string
+        product_names = [p.get("name", "").lower() for p in all_products if p.get("name")]
+        
+        # Filter and clean product names
+        clean_names = []
+        for name in product_names:
+            cn = re.sub(r'[^a-z0-9]', '', name.split()[0]) # take first word to avoid massive urls
+            if cn and cn not in clean_names:
+                clean_names.append(cn)
+                
+        if len(clean_names) > 0:
+            if len(clean_names) <= 4:
+                prod_slug = "_and_".join(clean_names)
+            else:
+                prod_slug = "_and_".join(clean_names[:4]) + "_and_more"
+            slug = f"{base_slug}-{prod_slug}"
+        else:
+            slug = base_slug
+            
         farmer["slug"] = slug
+
+        # ── Check if we need to rename an existing repo ───────────────────────
+        old_repo_name = farmer.get("site_repo")
+        new_repo_name = f"agriconnect-{slug}"
+        
+        from services.github_api import _get_github_client
+        if old_repo_name and old_repo_name != new_repo_name:
+            try:
+                g = _get_github_client()
+                user = g.get_user()
+                existing = user.get_repo(old_repo_name)
+                existing.edit(name=new_repo_name)
+                log.info(f"Renamed repo from {old_repo_name} to {new_repo_name}")
+                time.sleep(2) # Wait for GitHub to process the rename
+            except Exception as e:
+                log.warning(f"Failed to rename repo from {old_repo_name} to {new_repo_name}: {e}")
 
         # ── Step 5: Get or create GitHub repo ─────────────────────────────────
         from services.github_api import get_or_create_repo, push_multiple_files
