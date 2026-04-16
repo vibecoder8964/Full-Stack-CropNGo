@@ -1,16 +1,19 @@
 # AgriConnect Full-Stack Application 🌾🤖
 
-AgriConnect is a comprehensive, mobile-first marketplace and communication platform designed specifically for the agricultural sector. It connects **Farmers, Vendors, and Suppliers**, helping them trade, communicate, and utilize advanced AI insights.
+Nowadays, everything in the web that the farmers need, including search for people to supply tools, to purchase their crops, and to gain exposure or learn new plantation techniques, is scattered around the web, and finding those resources are not effective nor personalized. This had cause crop waste, reduced performance of farmers, and the declining of agricultural sector in Malaysia.
 
-This repository contains both the **Frontend (AgriConnect)** built with React + Vite, and the **Backend (AgriAgent)** built with FastAPI and Google Gemini AI.
+AgriConnect is a comprehensive marketplace and communication platform designed specifically for the agricultural sector. It connects **Farmers, Vendors, and Suppliers**, helping them trade, communicate, and utilize advanced AI insights. It also provides suggestions and resources for Farmers to facilate the "produce and sell" process.
+
+This repository contains both the **Frontend (AgriConnect)** built with React + Vite, and the **Backend (AgriAgent)** built with Python, FastAPI and Google Gemini AI.
 
 ## 🚀 Key Features
-- **Frontend App**: Modern UI, Authentication, Shop listings, Event Discovery, and Role-based dashboards.
+- **Frontend App**: Modern UI, Authentication, Shop listings, Encrypted chats, Event Discovery, and Role-based dashboards.
 - **AI Agent Backend**:
   - `Farmer AI`: Analyzes crop suitability based on climate, soil, and land size.
   - `Vendor AI`: Discovers specific product suppliers via app database and direct web scraping.
   - `Supplier AI`: Predicts equipment demand trends using recursive web search analysis.
-- **Automated SEO Website Generator**: Automatically creates and updates free static SEO landing pages on GitHub Pages for farmers whenever they publish a product.
+- **Automated SEO Website Generator**: Automatically creates and updates free static SEO landing pages by providing keywords on GitHub Pages for farmers whenever they publish a product to gain exposure in the website.
+- **AgriEvents and push notifications**: Dedicated events that suits the user, allowing user to join the agricultural events near them to gain exposure, learn new things and connect offline. Notifications notify user to prevent missing deadlines.
 - **Live Database**: Firebase integration for real-time user profiles, authentication, and marketplace listings.
 
 ---
