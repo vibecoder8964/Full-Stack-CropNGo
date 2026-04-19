@@ -4,7 +4,7 @@ Nowadays, everything in the web that the farmers need, including search for peop
 
 CropNGo is a comprehensive marketplace and communication platform designed specifically for the agricultural sector. It connects **Farmers, Vendors, and Suppliers**, helping them trade, communicate, and utilize advanced AI insights. It also provides suggestions and resources for Farmers to facilate the "produce and sell" process.
 
-This repository contains both the **Frontend (CropNGo)** built with React + Vite, and the **Backend (AgriAgent)** built with Python, FastAPI and Google Gemini AI.
+This repository contains both the **Frontend (CropNGo)** built with React + Vite, and the **Backend (CropNGo Agent)** built with Python, FastAPI and Google Gemini AI.
 
 ## 🚀 Key Features
 - **Frontend App**: Modern UI, Authentication, Shop listings, Encrypted chats, Event Discovery, and Role-based dashboards.
@@ -22,7 +22,7 @@ This repository contains both the **Frontend (CropNGo)** built with React + Vite
 
 ```text
 CropNGo_FullStackApp/
-├── CropNGo/             # [FRONTEND] React + Vite App
+├── frontend/             # [FRONTEND] React + Vite App
 │   ├── src/                 # UI Components, Pages, Context, and firebase.js
 │   ├── public/              # Static public assets
 │   ├── dist/                # Production build output
@@ -32,7 +32,7 @@ CropNGo_FullStackApp/
 │   ├── tailwind.config.js   # Tailwind CSS configuration
 │   └── .env                 # Frontend environment variables
 │
-└── AgriAgent/               # [BACKEND] Python + FastAPI + Gemini
+└── backend/               # [BACKEND] Python + FastAPI + Gemini
     ├── main.py              # Server and API Endpoints
     ├── agent.py             # Skill routing logic
     ├── config.py            # App configurations
@@ -57,11 +57,11 @@ Follow these steps to run both the frontend and backend locally on your machine.
 
 ---
 
-### Step 1: Setup the AI Backend (AgriAgent)
+### Step 1: Setup the AI Backend (backend)
 
 1. Open a terminal and navigate to the backend folder:
    ```bash
-   cd AgriAgent
+   cd backend
    ```
 2. Create and activate a Python virtual environment:
    ```bash
@@ -78,7 +78,7 @@ Follow these steps to run both the frontend and backend locally on your machine.
 4. Set up your Environment Variables (`.env`):
    When you clone a repository, secret files like `.env` are deliberately left out for security. We provide an `.env.example` file so you know what variables the app needs!
    
-   - Look for the `.env.example` file in the `AgriAgent` folder.
+   - Look for the `.env.example` file in the `backend` folder.
    - **Copy** `.env.example` and rename the new file to exactly `.env` (it might look like a file with no name and just an extension on Windows).
    - Open your new `.env` file in your code editor and fill in your keys:
      ```env
@@ -97,8 +97,8 @@ If you see a "Firebase Admin Init Error" in your terminal, it means the backend 
 1. Go to your [Firebase Console](https://console.firebase.google.com/).
 2. Click on **Project Settings** (the gear icon) -> **Service Accounts**.
 3. Click **Generate New Private Key** -> **Generate Key**. This downloads a `.json` file.
-4. **Method A (Easiest):** Open that `.json` file, copy everything, and paste it into your `AgriAgent/.env` as the `FIREBASE_CREDENTIALS_JSON` variable (make sure it's all on one line or wrapped in single quotes).
-5. **Method B:** Rename the file to `firebase-key.json` and move it into the `AgriAgent/` folder. The app will automatically try to find it.
+4. **Method A (Easiest):** Open that `.json` file, copy everything, and paste it into your `backend/.env` as the `FIREBASE_CREDENTIALS_JSON` variable (make sure it's all on one line or wrapped in single quotes).
+5. **Method B:** Rename the file to `firebase-key.json` and move it into the `backend/` folder. The app will automatically try to find it.
 
 ---
 
@@ -110,11 +110,11 @@ If you see a "Firebase Admin Init Error" in your terminal, it means the backend 
 
 ---
 
-### Step 2: Setup the Frontend (CropNGo)
+### Step 2: Setup the Frontend (frontend)
 
 1. Open a **new** terminal window and navigate to the frontend folder:
    ```bash
-   cd CropNGo
+   cd frontend
    ```
 2. Install the javascript dependencies:
    ```bash
@@ -145,13 +145,13 @@ If you want to test the SEO website generation feature:
 
 1. Create a **GitHub Bot Account**. Open a private browser window, go to [github.com/signup](https://github.com/signup), and create a new account (e.g. `cropngo-bot`).
 2. Generate a **Personal Access Token (PAT)**. Log in to the bot account, go to **Settings → Developer Settings → Personal Access Tokens → Tokens (classic)**. Generate a new token with **no expiration**, checking ONLY the `repo` and `workflow` scopes. **Copy the token.**
-3. Add the token and bot info to your `AgriAgent/.env` file:
+3. Add the token and bot info to your `backend/.env` file:
    ```env
    GITHUB_BOT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
    GITHUB_BOT_USERNAME=YOUR_USERNAME
    GITHUB_BOT_EMAIL=YOUR_REGISTERED_EMAIL
    ```
-4. Test the automated setup by running this command in the `AgriAgent` terminal (make sure your virtual environment is activated):
+4. Test the automated setup by running this command in the `backend` terminal (make sure your virtual environment is activated):
    ```bash
    python -m services.farmer_site_publisher --test
    ```

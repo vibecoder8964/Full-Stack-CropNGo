@@ -10,7 +10,7 @@ from skills.event_crawler.endpoint import EventSearchRequest
 
 logger = logging.getLogger("cropngo")
 
-app = FastAPI(title="AgriAgent API")
+app = FastAPI(title="CropNGo API")
 
 # Enable CORS for CropNGo's frontend
 app.add_middleware(
@@ -26,7 +26,7 @@ app.add_middleware(
 def root():
     """Root endpoint — shows API info instead of a blank page."""
     return {
-        "service": "AgriAgent API",
+        "service": "CropNGo API",
         "version": "1.0.0",
         "status": "running",
         "endpoints": ["/agent", "/chat", "/events", "/health"],

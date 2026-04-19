@@ -495,7 +495,7 @@ export default function EventsPage() {
 
         {data?.generated_at && (
           <div className="mt-16 text-center text-bark-400 text-xs font-body italic border-t border-cream-200 pt-8">
-            Last updated: {new Date(data.generated_at).toLocaleString()} · Powered by AgriAgent
+            Last updated: {new Date(data.generated_at).toLocaleString()} · Powered by CropNGo Agent
           </div>
         )}
       </div>
