@@ -1,5 +1,5 @@
 """
-AgriAgent — EventSearch FastAPI Endpoint
+CropNGo Agent — EventSearch FastAPI Endpoint
 =========================================
 Defines the request model and test runner for the /events endpoint.
 The endpoint itself is registered in the root main.py.
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     ]
 
     print("\n" + "#"*60)
-    print("  AgriAgent EventSearch - Test Runner")
+    print("  CropNGo Agent EventSearch - Test Runner")
     print("#"*60)
 
     for i, tc in enumerate(TEST_CASES):

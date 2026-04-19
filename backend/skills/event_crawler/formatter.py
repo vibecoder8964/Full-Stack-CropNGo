@@ -1,5 +1,5 @@
 """
-AgriAgent — EventSearch Output Formatter
+CropNGo Agent — EventSearch Output Formatter
 =========================================
 Produces the final JSON structure consumed by the CropNGo frontend.
 The JSON schema here is the CONTRACT between backend and frontend.

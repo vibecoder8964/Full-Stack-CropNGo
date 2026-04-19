@@ -1,6 +1,6 @@
 """
-AgriAgent — EventSearch Main Orchestrator
-==========================================
+CropNGo Agent — EventSearch Main Orchestrator
+===========================================
 Entry point for the EventSearch skill.
 Called by the /events endpoint in the root main.py.
 
@@ -46,7 +46,7 @@ def run_event_search(
         dict — final JSON following the frontend contract in formatter.py
     """
     print("\n" + "="*60)
-    print("  AgriAgent - EventSearch Pipeline Starting")
+    print("  CropNGo Agent - EventSearch Pipeline Starting")
     print("="*60)
 
     # Use Google Maps API key from config for location resolution

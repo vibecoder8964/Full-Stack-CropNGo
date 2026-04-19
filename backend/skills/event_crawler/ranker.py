@@ -1,5 +1,5 @@
 """
-AgriAgent — EventSearch AI Ranker
+CropNGo Agent — EventSearch AI Ranker
 ==================================
 Uses Gemini (google.genai) to:
 1. Read all crawled page data

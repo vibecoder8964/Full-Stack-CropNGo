@@ -1,5 +1,5 @@
 """
-AgriAgent — EventSearch Recursive Web Crawler
+CropNGo Agent — EventSearch Recursive Web Crawler
 =============================================
 Recursively crawls the web to find agricultural events,
 workshops, roadshows, and farmer business opportunities.
