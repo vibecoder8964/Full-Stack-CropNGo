@@ -1,10 +1,10 @@
-# AgriConnect Full-Stack Application 🌾🤖
+# CropNGo Full-Stack Application 🌾🤖
 
 Nowadays, everything in the web that the farmers need, including search for people to supply tools, to purchase their crops, and to gain exposure or learn new plantation techniques, is scattered around the web, and finding those resources are not effective nor personalized. This had cause crop waste, reduced performance of farmers, and the declining of agricultural sector in Malaysia.
 
-AgriConnect is a comprehensive marketplace and communication platform designed specifically for the agricultural sector. It connects **Farmers, Vendors, and Suppliers**, helping them trade, communicate, and utilize advanced AI insights. It also provides suggestions and resources for Farmers to facilate the "produce and sell" process.
+CropNGo is a comprehensive marketplace and communication platform designed specifically for the agricultural sector. It connects **Farmers, Vendors, and Suppliers**, helping them trade, communicate, and utilize advanced AI insights. It also provides suggestions and resources for Farmers to facilate the "produce and sell" process.
 
-This repository contains both the **Frontend (AgriConnect)** built with React + Vite, and the **Backend (AgriAgent)** built with Python, FastAPI and Google Gemini AI.
+This repository contains both the **Frontend (CropNGo)** built with React + Vite, and the **Backend (AgriAgent)** built with Python, FastAPI and Google Gemini AI.
 
 ## 🚀 Key Features
 - **Frontend App**: Modern UI, Authentication, Shop listings, Encrypted chats, Event Discovery, and Role-based dashboards.
@@ -21,8 +21,8 @@ This repository contains both the **Frontend (AgriConnect)** built with React + 
 ## 📂 Project Structure
 
 ```text
-AgriConnect_FullStackApp/
-├── AgriConnect/             # [FRONTEND] React + Vite App
+CropNGo_FullStackApp/
+├── CropNGo/             # [FRONTEND] React + Vite App
 │   ├── src/                 # UI Components, Pages, Context, and firebase.js
 │   ├── public/              # Static public assets
 │   ├── dist/                # Production build output
@@ -110,11 +110,11 @@ If you see a "Firebase Admin Init Error" in your terminal, it means the backend 
 
 ---
 
-### Step 2: Setup the Frontend (AgriConnect)
+### Step 2: Setup the Frontend (CropNGo)
 
 1. Open a **new** terminal window and navigate to the frontend folder:
    ```bash
-   cd AgriConnect
+   cd CropNGo
    ```
 2. Install the javascript dependencies:
    ```bash
@@ -122,7 +122,7 @@ If you see a "Firebase Admin Init Error" in your terminal, it means the backend 
    ```
 3. Set up your Frontend Environment Variables (`.env`):
    Just like the backend, you need a local `.env` file for the frontend!
-   - Create a new file named `.env` in the `AgriConnect` folder.
+   - Create a new file named `.env` in the `CropNGo` folder.
    - To connect the frontend to your local backend, add this line in your `.env` file:
      ```env
      VITE_API_URL=http://127.0.0.1:8000
@@ -138,12 +138,12 @@ If you see a "Firebase Admin Init Error" in your terminal, it means the backend 
 
 ### Step 3: (Optional) Setup the Automated SEO Site Publisher
 
-AgriConnect has a feature that automatically generates a GitHub Pages website for farmers when they publish a product. 
+CropNGo has a feature that automatically generates a GitHub Pages website for farmers when they publish a product. 
 **If you are a newbie without a GitHub account and just want to test the app locally, you can skip this step!** The app will gracefully fall back and still work perfectly without it.
 
 If you want to test the SEO website generation feature:
 
-1. Create a **GitHub Bot Account**. Open a private browser window, go to [github.com/signup](https://github.com/signup), and create a new account (e.g. `agriconnect-bot`).
+1. Create a **GitHub Bot Account**. Open a private browser window, go to [github.com/signup](https://github.com/signup), and create a new account (e.g. `cropngo-bot`).
 2. Generate a **Personal Access Token (PAT)**. Log in to the bot account, go to **Settings → Developer Settings → Personal Access Tokens → Tokens (classic)**. Generate a new token with **no expiration**, checking ONLY the `repo` and `workflow` scopes. **Copy the token.**
 3. Add the token and bot info to your `AgriAgent/.env` file:
    ```env
@@ -160,7 +160,7 @@ If you want to test the SEO website generation feature:
 ---
 
 ### Step 4: Play with it! 🎉
-Open your browser and navigate to `http://localhost:5173` (or the URL provided by the `npm run dev` command). 
+Open your browser and navigate to `http://localhost:5173`.
 - **Sign up** to create an account (data is saved to Firebase).
 - Navigate to the **AI Assistant** or **Events** page to see the backend tools in action.
 - Add a listing in the **Marketplace** (Shop page) to see the Automated SEO Site feature automatically create a Github Pages site for your farmer profile!
@@ -177,7 +177,7 @@ We use a special file called `.gitignore` which automatically hides files like `
 Here is the step-by-step guide to safe committing:
 
 1. **Verify your `.gitignore` is working**
-   Run this command in the root folder (`AgriConnect_FullStackApp`) to see what files Git is tracking:
+   Run this command in the root folder (`CropNGo_FullStackApp`) to see what files Git is tracking:
    ```bash
    git status
    ```

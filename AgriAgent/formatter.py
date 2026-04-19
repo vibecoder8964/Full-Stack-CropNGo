@@ -8,13 +8,13 @@ def format_suitability(suitability: str, reason: str, suggestion: str) -> str:
 def format_product_results(app_results: list, web_results: list, web_search_enabled: bool) -> str:
     output = "**App Results:**\n"
     if not app_results:
-        output += "No products found in the AgriConnect shop.\n"
+        output += "No products found in the CropNGo shop.\n"
     for i, app in enumerate(app_results, 1):
         name = app.get('name', 'Unknown')
         price = app.get('price', 'N/A')
         desc = app.get('description', '')
-        link = app.get('link', 'https://agriconnect-1654b.web.app/app/shop')
-        output += f"[{i}] **{name}** — RM {price}, {desc}\n    → [View in AgriConnect Shop]({link})\n"
+        link = app.get('link', 'https://cropngo-1654b.web.app/app/shop')
+        output += f"[{i}] **{name}** — RM {price}, {desc}\n    → [View in CropNGo Shop]({link})\n"
     
     if web_search_enabled:
         output += "\n**Web Results:**\n"

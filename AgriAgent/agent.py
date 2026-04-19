@@ -85,13 +85,13 @@ def run_chat_request(input_data: dict) -> str:
     web_results = search_web(search_term, max_results=5)
     
     # Build Context
-    context_addon = "\n\n--- AGRICONNECT APP (Users & Products) ---\n"
+    context_addon = "\n\n--- CROPNGO APP (Users & Products) ---\n"
     if shop_results:
         for p in shop_results:
             stype = p.get('type','Item')
             context_addon += f"- {p['name']} ({stype}): {p.get('description', '')} [Link: {p['link']}]\n"
     else:
-        context_addon += "No matching users or products found in AgriConnect.\n"
+        context_addon += "No matching users or products found in CropNGo.\n"
         
     context_addon += "\n--- GLOBAL WEB RESULTS ---\n"
     if web_results:
@@ -104,7 +104,7 @@ def run_chat_request(input_data: dict) -> str:
         "You are an expert agricultural AI assistant. Your response MUST be between 30 and 200 words max — be clear, concise, and actionable. "
         "Your goal is to recommend the best products, users, or solutions by blending the provided Internal App Data and Global Web Results. "
         "CRITICAL FORMATTING: Every recommendation must include a clickable markdown link. "
-        "For AgriConnect App results (Users/Products), use: [Name (Role/Type)](DeepLink). "
+        "For CropNGo App results (Users/Products), use: [Name (Role/Type)](DeepLink). "
         "For Global Web results, use: [Title](URL). Include a MAXIMUM of 5 external web links overall. "
         "Structure your response to clearly answer the user's question, highlighting why these specifics were chosen. "
         "Ensure the final output is professional, structured, and useful."

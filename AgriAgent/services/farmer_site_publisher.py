@@ -1,7 +1,7 @@
 """
 Farmer Site Publisher — Main entry point.
 Publishes (or updates) a static SEO landing page on GitHub Pages
-for a farmer whenever they publish a product on AgriConnect.
+for a farmer whenever they publish a product on CropNGo.
 
 One GitHub repo per farmer. Same site updated for every new product.
 Never blocks the product publish flow.
@@ -74,7 +74,7 @@ from dotenv import load_dotenv
 _base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(dotenv_path=os.path.join(_base_dir, ".env"))
 
-GITHUB_BOT_USERNAME = os.getenv("GITHUB_BOT_USERNAME", "agriconnect-bot")
+GITHUB_BOT_USERNAME = os.getenv("GITHUB_BOT_USERNAME", "cropngo-bot")
 
 
 def _make_slug(username: str) -> str:
@@ -182,7 +182,7 @@ def publish_farmer_site(farmer_id: str) -> dict:
 
         # ── Check if we need to rename an existing repo ───────────────────────
         old_repo_name = farmer.get("site_repo")
-        new_repo_name = f"agriconnect-{slug}"
+        new_repo_name = f"cropngo-{slug}"
         
         from services.github_api import _get_github_client
         if old_repo_name and old_repo_name != new_repo_name:
@@ -202,7 +202,7 @@ def publish_farmer_site(farmer_id: str) -> dict:
         repo, was_created = get_or_create_repo(slug)
 
         # ── Step 6: Build page URL ────────────────────────────────────────────
-        page_url = f"https://{GITHUB_BOT_USERNAME}.github.io/agriconnect-{slug}"
+        page_url = f"https://{GITHUB_BOT_USERNAME}.github.io/cropngo-{slug}"
 
         # ── Step 7: Build SEO block ───────────────────────────────────────────
         from services.seo_builder import build_seo_block, build_sitemap_xml
@@ -294,7 +294,7 @@ def _run_test():
         print("   Check your GITHUB_BOT_TOKEN in .env")
         sys.exit(1)
 
-    test_repo_name = "agriconnect-test-delete-me"
+    test_repo_name = "cropngo-test-delete-me"
 
     # Create test repo
     try:
@@ -309,14 +309,14 @@ def _run_test():
         print(f"   Creating test repo: {test_repo_name}...")
         repo = user.create_repo(
             name=test_repo_name,
-            description="AgriConnect setup test — safe to delete",
+            description="CropNGo setup test — safe to delete",
             auto_init=True,
             private=False,
         )
         print(f"✅ Repo created: {repo.html_url}")
 
         # Push test file
-        test_html = "<html><body><h1>AgriConnect Test</h1><p>Setup successful!</p></body></html>"
+        test_html = "<html><body><h1>CropNGo Test</h1><p>Setup successful!</p></body></html>"
         repo.create_file(
             path="index.html",
             message="Test setup",

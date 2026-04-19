@@ -28,6 +28,7 @@ from datetime import datetime
 from urllib.parse import quote_plus, urlparse, urljoin
 from bs4 import BeautifulSoup
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
  
  
 # ══════════════════════════════════════════════════════════════════
@@ -48,10 +49,14 @@ HEADERS = {
 }
  
 MAX_DEPTH        = 2      # how deep to follow links recursively
-MAX_URLS_PER_Q   = 5      # URLs per search query
+MAX_URLS_PER_Q   = 10     # URLs per search query (increased for fewer queries)
 MAX_LINKS_PER_P  = 3      # sub-links to follow per page
 MAX_TOTAL_PAGES  = 40     # hard cap on total pages read
-REQUEST_DELAY    = 0.6    # seconds between requests (polite crawling)
+REQUEST_DELAY    = 0.2    # seconds between requests (faster crawling)
+MAX_WORKERS      = 8      # concurrent page fetch workers
+ 
+# Location cache to avoid repeated geocoding API calls
+_location_cache = {}
 JINA_MAX_CHARS   = 1800   # characters to read per page
  
 CURRENT_YEAR  = datetime.now().year
@@ -146,12 +151,21 @@ def resolve_location(location_raw: str, gmaps_key: str) -> dict:
     """
     Takes a raw location string (from user DB) and returns
     structured location data via Google Maps Geocoding API.
+    Uses caching to avoid repeated API calls for same location.
     """
+    global _location_cache
+    
     if not location_raw:
         return {"city": "Malaysia", "state": "Malaysia",
                 "country": "Malaysia", "full": "Malaysia",
                 "lat": 3.1390, "lng": 101.6869}
- 
+    
+    # Check cache first
+    cache_key = location_raw.strip().lower()
+    if cache_key in _location_cache:
+        print(f"   [Maps] Using cached location for: {location_raw}")
+        return _location_cache[cache_key]
+
     try:
         resp = requests.get(
             "https://maps.googleapis.com/maps/api/geocode/json",
@@ -166,15 +180,20 @@ def resolve_location(location_raw: str, gmaps_key: str) -> dict:
             state = next((c["long_name"] for c in components if "administrative_area_level_1" in c["types"]), "")
             country = next((c["long_name"] for c in components if "country" in c["types"]), "Malaysia")
             full  = ", ".join(filter(None, [city, state, country]))
-            return {"city": city, "state": state, "country": country,
+            result = {"city": city, "state": state, "country": country,
                     "full": full or location_raw,
                     "lat": geo["lat"], "lng": geo["lng"]}
+            # Cache the result
+            _location_cache[cache_key] = result
+            return result
     except Exception as e:
         print(f"   [Maps] Error: {e}")
- 
-    return {"city": location_raw, "state": location_raw,
+
+    result = {"city": location_raw, "state": location_raw,
             "country": "Malaysia", "full": location_raw,
             "lat": 3.1390, "lng": 101.6869}
+    _location_cache[cache_key] = result
+    return result
  
  
 # ══════════════════════════════════════════════════════════════════
@@ -263,7 +282,7 @@ def build_seo_queries(location: dict, user_profile: dict,
             seen.add(q)
             unique.append(q)
  
-    return unique[:25]  # top 25 queries
+    return unique[:12]  # reduced from 25 to 12 for faster search
  
  
 # ══════════════════════════════════════════════════════════════════
@@ -409,22 +428,20 @@ def recursive_crawl(queries: list[str],
  
     print(f"   [Crawler] Queue seeded: {len(queue)} URLs to process")
  
-    # ── BFS Recursive Crawl ────────────────────────────────────────────
-    while queue and len(all_pages) < MAX_TOTAL_PAGES:
-        url, depth, parent_query, meta = queue.popleft()
-        print(f"   [Depth {depth}] Reading: {url[:65]}...")
- 
+    # ── Concurrent BFS Recursive Crawl ──────────────────────────────────
+    def fetch_and_process_page(queue_item):
+        """Fetch a single page and return (page_data, sub_links_to_add) or None"""
+        url, depth, parent_query, meta = queue_item
+        
         page_text, raw_html = read_page_jina(url)
         combined = (meta.get("snippet","") + " " + meta.get("title","")
                     + " " + page_text)
- 
+
         # Relevance check
         relevance_threshold = 1 if meta.get("trusted") else 2
         if not is_event_relevant(combined, relevance_threshold):
-            print(f"            -> Skipped (not event-relevant)")
-            time.sleep(0.3)
-            continue
- 
+            return None, []
+
         # Store this page
         page_data = {
             **meta,
@@ -433,20 +450,18 @@ def recursive_crawl(queries: list[str],
             "parent_query": parent_query,
             "is_trusted":   meta.get("trusted", False),
         }
-        all_pages.append(page_data)
-        print(f"            -> [OK] Collected (depth={depth}, "
-              f"trusted={meta.get('trusted',False)})")
- 
-        # ── Recurse into sub-links if depth allows ─────────────────────
+
+        # Collect sub-links for recursion
+        sub_links = []
         if depth < MAX_DEPTH and (meta.get("trusted") or depth == 0):
-            sub_links = extract_links_from_page(
+            found_links = extract_links_from_page(
                 raw_html or page_text, url, link_keywords
             )
-            for link in sub_links[:MAX_LINKS_PER_P]:
+            for link in found_links[:MAX_LINKS_PER_P]:
                 link_hash = hashlib.md5(link.encode()).hexdigest()
                 if link_hash not in visited:
                     visited.add(link_hash)
-                    queue.append((link, depth + 1, parent_query, {
+                    sub_links.append((link, depth + 1, parent_query, {
                         "url":     link,
                         "title":   "",
                         "snippet": "",
@@ -454,8 +469,42 @@ def recursive_crawl(queries: list[str],
                         "query":   parent_query,
                         "trusted": is_trusted(link),
                     }))
- 
+        
+        return page_data, sub_links
+
+    # Process queue in batches with concurrency
+    while queue and len(all_pages) < MAX_TOTAL_PAGES:
+        # Take a batch from queue (respecting MAX_TOTAL_PAGES limit)
+        batch_size = min(MAX_WORKERS, len(queue), MAX_TOTAL_PAGES - len(all_pages))
+        batch = [queue.popleft() for _ in range(batch_size)]
+        
+        # Process batch concurrently
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_to_item = {
+                executor.submit(fetch_and_process_page, item): item 
+                for item in batch
+            }
+            
+            for future in as_completed(future_to_item):
+                item = future_to_item[future]
+                url, depth, parent_query, meta = item
+                
+                try:
+                    page_data, sub_links = future.result()
+                    if page_data:
+                        all_pages.append(page_data)
+                        print(f"   [Depth {depth}] [OK] {url[:55]}... "
+                              f"(total={len(all_pages)})")
+                        # Add sub-links to queue
+                        for link_item in sub_links:
+                            queue.append(link_item)
+                    else:
+                        print(f"   [Depth {depth}] Skipped (not relevant): {url[:55]}...")
+                except Exception as e:
+                    print(f"   [Depth {depth}] Error processing {url[:55]}: {e}")
+        
+        # Small delay between batches to be polite
         time.sleep(REQUEST_DELAY)
- 
+
     print(f"   [Crawler] Done. {len(all_pages)} relevant pages collected.")
     return all_pages

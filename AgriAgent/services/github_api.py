@@ -14,7 +14,7 @@ from github import Github, GithubException
 log = logging.getLogger("farmer_site_publisher")
 
 GITHUB_BOT_TOKEN = os.getenv("GITHUB_BOT_TOKEN", "")
-GITHUB_BOT_USERNAME = os.getenv("GITHUB_BOT_USERNAME", "agriconnect-bot")
+GITHUB_BOT_USERNAME = os.getenv("GITHUB_BOT_USERNAME", "cropngo-bot")
 
 
 def _get_github_client() -> Github:
@@ -26,14 +26,14 @@ def _get_github_client() -> Github:
 
 def get_or_create_repo(slug: str) -> tuple:
     """
-    Ensure a GitHub repo 'agriconnect-{slug}' exists under the bot account.
+    Ensure a GitHub repo 'cropngo-{slug}' exists under the bot account.
     Creates it as PUBLIC with auto-init if missing, then enables GitHub Pages.
 
     Returns: (repo_object, was_created: bool)
     """
     g = _get_github_client()
     user = g.get_user()
-    repo_name = f"agriconnect-{slug}"
+    repo_name = f"cropngo-{slug}"
     was_created = False
 
     # Check if repo already exists
@@ -45,7 +45,7 @@ def get_or_create_repo(slug: str) -> tuple:
             # Create new public repo with auto-init (README)
             repo = user.create_repo(
                 name=repo_name,
-                description=f"{slug}'s farm store on AgriConnect",
+                description=f"{slug}'s farm store on CropNGo",
                 auto_init=True,
                 private=False,
             )

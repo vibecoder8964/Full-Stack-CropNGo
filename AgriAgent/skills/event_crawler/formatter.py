@@ -1,7 +1,7 @@
 """
 AgriAgent — EventSearch Output Formatter
 =========================================
-Produces the final JSON structure consumed by the AgriConnect frontend.
+Produces the final JSON structure consumed by the CropNGo frontend.
 The JSON schema here is the CONTRACT between backend and frontend.
 
 Categories:  Expo | Workshop | Webinar | Competition
@@ -21,7 +21,7 @@ def format_final_output(
     description: str,
 ) -> dict:
     """
-    Produces the final JSON output for the AgriConnect frontend.
+    Produces the final JSON output for the CropNGo frontend.
 
     JSON CONTRACT (frontend must implement):
     ----------------------------------------

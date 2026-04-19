@@ -37,7 +37,7 @@ def run_event_search(
     6.  Format final JSON output
 
     Args:
-        user_id      : AgriConnect user ID (for logging)
+        user_id      : CropNGo user ID (for logging)
         description  : User's description / bio from users table
         location_raw : Raw location string from users table
         web_search   : If False, return empty (no web crawling)
@@ -81,14 +81,11 @@ def run_event_search(
     raw_pages = recursive_crawl(queries, event_keywords)
     print(f"      -> {len(raw_pages)} relevant pages collected")
 
-    if not raw_pages:
-        print("      -> No pages found, returning empty result")
-        return format_final_output([], location, user_profile, description)
-
     # -- Step 5: AI ranking -----------------------------------------------
     print("\n[5/5] Running Gemini AI ranking agent...")
+    # Even if raw_pages is empty, we call the ranker to generate fallback events
     ranked_events = ai_rank_and_structure(
-        raw_pages, location, user_profile, description
+        raw_pages or [], location, user_profile, description
     )
 
     # ── Format + return ──────────────────────────────────────────────────

@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 # ── Request model ─────────────────────────────────────────────────────────
 class EventSearchRequest(BaseModel):
-    user_id:      str           # AgriConnect user ID (username)
+    user_id:      str           # CropNGo user ID (username)
     description:  str           # from users table (bio)
     location:     str           # from users table (raw string e.g. "Johor Bahru")
     web_search:   bool = True   # user toggle in frontend

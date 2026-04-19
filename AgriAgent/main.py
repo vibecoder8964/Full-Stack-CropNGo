@@ -8,11 +8,11 @@ from agent import process_agent_request, run_chat_request
 from skills.event_crawler import run_event_search
 from skills.event_crawler.endpoint import EventSearchRequest
 
-logger = logging.getLogger("agriconnect")
+logger = logging.getLogger("cropngo")
 
 app = FastAPI(title="AgriAgent API")
 
-# Enable CORS for AgriConnect's frontend
+# Enable CORS for CropNGo's frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Should be restricted in production

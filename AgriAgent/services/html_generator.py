@@ -225,7 +225,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     today_str = datetime.now(timezone.utc).strftime("%B %d, %Y")
 
     # SEO fields
-    title = _esc(seo_block.get("title", f"{farmer_name} — AgriConnect"))
+    title = _esc(seo_block.get("title", f"{farmer_name} — CropNGo"))
     meta_desc = _esc(seo_block.get("meta_description", ""))
     meta_keywords = _esc(seo_block.get("meta_keywords", ""))
     og_title = _esc(seo_block.get("og_title", title))
@@ -252,7 +252,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     <meta property="og:description" content="{og_desc}">
     <meta property="og:url" content="{canonical_url}">
     <meta property="og:image" content="{og_image}">
-    <meta property="og:site_name" content="AgriConnect Malaysia">
+    <meta property="og:site_name" content="CropNGo Malaysia">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -274,7 +274,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     <header class="site-header">
         <div class="container">
             <span class="brand">🌿 {farmer_name}'s Farm Store</span>
-            <a href="https://agriconnect-1654b.web.app/app/shop" class="cta-btn" target="_blank">View on AgriConnect →</a>
+            <a href="https://cropngo-1654b.web.app/app/shop" class="cta-btn" target="_blank">View on CropNGo →</a>
         </div>
     </header>"""
 
@@ -292,7 +292,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
             <h1>{farmer_name}</h1>
             {"<p class='location'>📍 " + location + "</p>" if location else ""}
             {"<p class='bio'>" + bio + "</p>" if bio else ""}
-            <span class="badge-verified">✅ Verified AgriConnect Seller</span>
+            <span class="badge-verified">✅ Verified CropNGo Seller</span>
             <p class="product-count">{len(all_products)} Product{"s" if len(all_products) != 1 else ""} Available</p>
         </div>
     </section>"""
@@ -344,7 +344,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
                 <p class="description">{p_desc}</p>
                 {avail_html}
                 {keywords_html}
-                <a href="https://agriconnect-1654b.web.app/app/shop" class="order-btn" target="_blank">Order on AgriConnect →</a>
+                <a href="https://cropngo-1654b.web.app/app/shop" class="order-btn" target="_blank">Order on CropNGo →</a>
             </div>
         </div>"""
         product_rows.append(row)
@@ -353,7 +353,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     <section class="products-section">
         <div class="container">
             <h2 class="section-title">Products for Sale</h2>
-            <p class="section-sub">Click any product to order on AgriConnect</p>
+            <p class="section-sub">Click any product to order on CropNGo</p>
             {"".join(product_rows)}
         </div>
     </section>"""
@@ -362,7 +362,7 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     whatsapp_section = ""
     clean_phone = phone.replace(" ", "").replace("-", "").replace("+", "")
     if clean_phone:
-        wa_msg = "Hi, I found your products on AgriConnect! I am interested in ordering."
+        wa_msg = "Hi, I found your products on CropNGo! I am interested in ordering."
         whatsapp_section = f"""
     <section class="whatsapp-section">
         <div class="container">
@@ -377,8 +377,8 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
     footer = f"""
     <footer class="site-footer">
         <div class="container">
-            <p>Sold via <a href="https://agriconnect-1654b.web.app" target="_blank">AgriConnect</a> — Malaysia's Agricultural Marketplace</p>
-            <p>© {current_year} AgriConnect. Supporting local farmers.</p>
+            <p>Sold via <a href="https://cropngo-1654b.web.app" target="_blank">CropNGo</a> — Malaysia's Agricultural Marketplace</p>
+            <p>© {current_year} CropNGo. Supporting local farmers.</p>
             <p>Last updated: {today_str}</p>
         </div>
     </footer>

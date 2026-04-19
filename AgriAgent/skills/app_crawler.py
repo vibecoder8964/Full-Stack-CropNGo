@@ -80,7 +80,7 @@ def extract_search_keywords(question: str) -> list:
         return []
 
 def search_shop_products(question: str) -> list:
-    """Search all users and products in the AgriConnect app based on the question"""
+    """Search all users and products in the CropNGo app based on the question"""
     keywords = extract_search_keywords(question)
     if not keywords:
         keywords = [word for word in question.lower().split() if len(word) > 4]
@@ -102,7 +102,7 @@ def search_shop_products(question: str) -> list:
                     "name": p.get("name"),
                     "price": p.get("price"),
                     "description": p.get("description"),
-                    "link": f"https://agriconnect-1654b.web.app/app/profile/{p.get('sellerId', '')}" 
+                    "link": f"https://cropngo-1654b.web.app/app/profile/{p.get('sellerId', '')}" 
                 })
 
     # 2. Search Users
@@ -120,7 +120,7 @@ def search_shop_products(question: str) -> list:
                     "role": u.get("role"),
                     "description": u.get("bio") or u.get("description"),
                     "location": u.get("location"),
-                    "link": f"https://agriconnect-1654b.web.app/app/profile/{u.get('username')}" # Deep link to profile
+                    "link": f"https://cropngo-1654b.web.app/app/profile/{u.get('username')}" # Deep link to profile
                 })
 
     # Remove duplicates

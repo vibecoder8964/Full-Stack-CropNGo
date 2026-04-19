@@ -52,9 +52,9 @@ def build_seo_block(farmer: dict, all_products: list, new_keywords: list,
     top_products_str = ", ".join(product_names) if product_names else "fresh produce"
 
     # ── Build Meta Fields ────────────────────────────────────────────────────
-    title = f"{farmer_name} — Fresh Farm Products | AgriConnect Malaysia"
+    title = f"{farmer_name} — Fresh Farm Products | CropNGo Malaysia"
 
-    meta_desc = f"Buy fresh {top_products_str} directly from {farmer_name} in {location}. Order now on AgriConnect."
+    meta_desc = f"Buy fresh {top_products_str} directly from {farmer_name} in {location}. Order now on CropNGo."
     # Trim to 155 chars for SEO
     if len(meta_desc) > 155:
         meta_desc = meta_desc[:152] + "..."
@@ -107,7 +107,7 @@ def build_schema_jsonld(farmer: dict, all_products: list, page_url: str) -> str:
             "description": (p.get("description", "") or "")[:200],
             "priceCurrency": "MYR",
             "availability": "https://schema.org/InStock" if is_available else "https://schema.org/OutOfStock",
-            "url": f"https://agriconnect-1654b.web.app/app/shop"
+            "url": f"https://cropngo-1654b.web.app/app/shop"
         }
         if price is not None:
             offer["price"] = str(price)
@@ -118,7 +118,7 @@ def build_schema_jsonld(farmer: dict, all_products: list, page_url: str) -> str:
         "@context": "https://schema.org",
         "@type": "Store",
         "name": f"{farmer_name}'s Farm Store",
-        "description": farmer.get("bio") or farmer.get("description") or f"{farmer_name}'s agricultural products on AgriConnect",
+        "description": farmer.get("bio") or farmer.get("description") or f"{farmer_name}'s agricultural products on CropNGo",
         "url": page_url,
         "makesOffer": offers,
     }
