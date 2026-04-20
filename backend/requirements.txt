@@ -9,3 +9,5 @@ beautifulsoup4
 google-cloud-aiplatform
 firebase-admin
 PyGithub>=2.1.1
+aiofiles
+python-multipart

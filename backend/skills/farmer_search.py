@@ -7,17 +7,13 @@ from typing import Optional
 from .demand_search import run_demand_search
 from .suitability_search import run_suitability_search
 from .product_search import run_product_search
-from config import Config
-
-client = genai.Client(api_key=Config.GEMINI_API_KEY)
-
-class FarmerContextExtraction(BaseModel):
-    plant_type: str
-    location: str
-    items_needed: list[str]
-    soil_quality_analysis: Optional[str] = None
+from llm_client import get_gemini_client
 
 def extract_farmer_context(question: str, image_data: Optional[str] = None) -> FarmerContextExtraction:
+    client = get_gemini_client()
+    if not client:
+        return FarmerContextExtraction(plant_type="Unknown", location="Unknown", items_needed=["fertilizer"])
+
     prompt = f"""
     {Config.SYSTEM_PROMPT_CONSTRAINT}
     

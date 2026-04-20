@@ -6,16 +6,13 @@ from pydantic import BaseModel
 from .web_crawler import search_demand_web
 from .app_crawler import calculate_search_score
 from config import Config
-from formatter import format_demand
-
-# Init gemini client
-client = genai.Client(api_key=Config.GEMINI_API_KEY)
-
-class ProductExtraction(BaseModel):
-    products: list[str]
-    location: str
+from llm_client import get_gemini_client
 
 def extract_product_and_location(question: str, user_description: str) -> ProductExtraction:
+    client = get_gemini_client()
+    if not client:
+        return ProductExtraction(products=["General Crops"], location="Unknown")
+
     prompt = f"User profile: {user_description}\nQuestion: {question}\nExtract ALL individual agricultural products/equipment mentioned (as a strict array of individual strings, e.g. ['Tractor', 'Shovel', 'Plow']) and the intended location (default to user profile location if not in question). Make sure NO multiple items are merged into one string."
     
     response = client.models.generate_content(
@@ -32,6 +29,10 @@ class ExplanationModel(BaseModel):
     explanation: str
 
 def generate_demand_explanation(product: str, location: str, web_score: float, app_score: float, final_score: float, grade: str) -> str:
+    client = get_gemini_client()
+    if not client:
+        return f"The product {product} has a grade of {grade}."
+
     prompt = f"""
     {Config.SYSTEM_PROMPT_CONSTRAINT}
     

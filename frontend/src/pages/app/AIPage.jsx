@@ -12,7 +12,7 @@ import { db } from '../../firebase'
 import { collection, addDoc } from 'firebase/firestore'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const getApiUrl = () => import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const getApiUrl = () => import.meta.env.VITE_API_URL || ''
 
 const CHAT_STORAGE_KEY_PREFIX = 'cropngo_chat_history_'
 

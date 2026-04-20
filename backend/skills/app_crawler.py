@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from google import genai
 from config import Config
 
-client = genai.Client(api_key=Config.GEMINI_API_KEY)
-
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -102,7 +100,7 @@ def search_shop_products(question: str) -> list:
                     "name": p.get("name"),
                     "price": p.get("price"),
                     "description": p.get("description"),
-                    "link": f"https://cropngo-1654b.web.app/app/profile/{p.get('sellerId', '')}" 
+                    "link": f"/app/profile/{p.get('sellerId', '')}" 
                 })
 
     # 2. Search Users
@@ -120,7 +118,7 @@ def search_shop_products(question: str) -> list:
                     "role": u.get("role"),
                     "description": u.get("bio") or u.get("description"),
                     "location": u.get("location"),
-                    "link": f"https://cropngo-1654b.web.app/app/profile/{u.get('username')}" # Deep link to profile
+                    "link": f"/app/profile/{u.get('username')}" # Deep link to profile
                 })
 
     # Remove duplicates

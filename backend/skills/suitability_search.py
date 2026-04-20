@@ -4,15 +4,13 @@ from google.genai import types
 from pydantic import BaseModel
 
 from config import Config
-from formatter import format_suitability
-
-client = genai.Client(api_key=Config.GEMINI_API_KEY)
-
-class CropLocationExtraction(BaseModel):
-    crop: str
-    location: str
+from llm_client import get_gemini_client
 
 def extract_crop_and_location(input_data: dict) -> CropLocationExtraction:
+    client = get_gemini_client()
+    if not client:
+        return CropLocationExtraction(crop="Unknown", location="Unknown")
+
     question = input_data.get("question", "")
     description = input_data.get("description", "")
     
@@ -94,6 +92,10 @@ def run_suitability_search(input_data: dict) -> str:
     weather_data = get_weather_climate(lat, lon)
     
     # 4. Assess Suitability via Gemini
+    client = get_gemini_client()
+    if not client:
+        return "AI Service is currently unavailable. Please check your API key."
+
     prompt = f"""
     {Config.SYSTEM_PROMPT_CONSTRAINT}
 

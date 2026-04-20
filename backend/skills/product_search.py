@@ -5,14 +5,13 @@ from pydantic import BaseModel
 from .app_crawler import search_shop_products
 from .web_crawler import search_web
 from config import Config
-from formatter import format_product_results
-
-client = genai.Client(api_key=Config.GEMINI_API_KEY)
-
-class ItemExtraction(BaseModel):
-    items: list[str]
+from llm_client import get_gemini_client
 
 def extract_items(input_data: dict) -> list[str]:
+    client = get_gemini_client()
+    if not client:
+        return ["fertilizer"] # Safe fallback
+
     question = input_data.get("question", "")
     prompt = f"Question: {question}\nExtract the specific items or products the user is looking for. Return as a list of strings."
     

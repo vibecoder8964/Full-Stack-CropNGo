@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '--build-arg', 'VITE_GOOGLE_MAPS_API_KEY=${_VITE_GOOGLE_MAPS_API_KEY}',
+    '-t', 'us-central1-docker.pkg.dev/gen-lang-client-0666746526/cropngo-repo/cropngo-app',
+    '.'
+  ]
+images:
+- 'us-central1-docker.pkg.dev/gen-lang-client-0666746526/cropngo-repo/cropngo-app'
+substitutions:
+  _VITE_GOOGLE_MAPS_API_KEY: 'default_value_if_not_provided'

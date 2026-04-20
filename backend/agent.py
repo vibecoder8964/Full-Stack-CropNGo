@@ -8,12 +8,10 @@ from skills.product_search import run_product_search
 from skills.farmer_search import run_farmer_search
 from config import Config
 
+from llm_client import get_gemini_client
+
 if not Config.GEMINI_API_KEY or "ENTER_YOUR" in Config.GEMINI_API_KEY:
     print("WARNING: GEMINI_API_KEY is not set correctly in .env")
-
-# Clean the API key (strip whitespace and common quotes)
-api_key = Config.GEMINI_API_KEY.strip().strip("'").strip('"') if Config.GEMINI_API_KEY else None
-client = genai.Client(api_key=api_key)
 
 class SkillRoute(BaseModel):
     skill: str # "DemandSearch", "SuitabilitySearch", "ProductSearch", "FarmerSearch", "None"
@@ -40,6 +38,10 @@ def route_skill(input_data: dict) -> str:
     - FarmerSearch: Triggered if the question explicitly provides structured background data like "Background: Type of plant ... Place of cultivation ... Land size ... Tools available".
     - None: If none of the above are applicable (general knowledge question).
     """
+
+    client = get_gemini_client()
+    if not client:
+        return "None"
 
     response = client.models.generate_content(
         model=Config.MODEL_NAME,
@@ -111,6 +113,10 @@ def run_chat_request(input_data: dict) -> str:
     )
     prompt = f"System Note: {system_note}\n\nUser Role: {role}\nUser Profile: {description}{context_addon}\n\nUser Question: {question}"
     
+    client = get_gemini_client()
+    if not client:
+        return "AI Service is currently unavailable. Please ensure your API key is set correctly in the Cloud Console."
+
     response = client.models.generate_content(
         model=Config.MODEL_NAME,
         contents=prompt,

@@ -1,16 +1,35 @@
+import os
 import logging
+import json
+import time
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agent import process_agent_request, run_chat_request
-from skills.event_crawler import run_event_search
-from skills.event_crawler.endpoint import EventSearchRequest
+class EventSearchRequest(BaseModel):
+    user_id: str
+    description: str
+    location: str
+    web_search: bool = False
+
+try:
+    from agent import process_agent_request, run_chat_request
+    from skills.event_crawler import run_event_search
+except Exception as e:
+    print(f"Startup Import Warning: {e}")
 
 logger = logging.getLogger("cropngo")
 
 app = FastAPI(title="CropNGo API")
+
+# Essential: Add a root health check that NEVER fails
+@app.get("/_health")
+def health():
+    return {"status": "ok"}
 
 # Enable CORS for CropNGo's frontend
 app.add_middleware(
@@ -22,15 +41,6 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def root():
-    """Root endpoint — shows API info instead of a blank page."""
-    return {
-        "service": "CropNGo API",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": ["/agent", "/chat", "/events", "/health"],
-    }
 
 
 @app.get("/health")
@@ -47,42 +57,8 @@ class InputPayload(BaseModel):
     web_search: Optional[bool] = False
     image_data: Optional[str] = None
 
-import time
-from google.genai.models import Models
-
-original_generate_content = Models.generate_content
-
-def generate_content_with_fallback(self, *args, **kwargs):
-    models_to_try = [
-        "gemini-1.5-flash-8b",
-        "gemini-2.5-flash-lite",
-        "gemini-3.1-flash-lite",
-        "gemini-3.0-flash",
-        "gemini-1.5-flash",
-        "gemini-2.5-flash"
-    ]
-    last_error = None
-    
-    for attempt in range(5):
-        for m in models_to_try:
-            kwargs['model'] = m
-            try:
-                return original_generate_content(self, *args, **kwargs)
-            except Exception as e:
-                err_str = str(e).lower()
-                if "503" in err_str or "unavailability" in err_str or "429" in err_str or "high demand" in err_str or "not found" in err_str.replace("_", " "):
-                    last_error = e
-                    continue
-                raise e
-        
-        # If all 6 models failed on this attempt and it isn't the last attempt, wait 3s
-        if attempt < 4:
-            time.sleep(3)
-            
-    raise Exception("Sorry, the LLM is occupied, Please try again later")
-
-Models.generate_content = generate_content_with_fallback
-
+# --- CLOUD API ENDPOINTS ---
+@app.post("/api/agent")
 @app.post("/agent")
 def agent_endpoint(payload: InputPayload):
     """Skill router endpoint"""
@@ -90,13 +66,23 @@ def agent_endpoint(payload: InputPayload):
         result = process_agent_request(payload.model_dump())
         return {"response": result}
     except Exception as e:
-        if "Sorry, the LLM is occupied" in str(e):
-            return {"response": "Sorry, the LLM is occupied, Please try again later"}
-        raise e
+        logger.error(f"Agent Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/chat/message")
 @app.post("/chat")
 def chat_endpoint(payload: InputPayload):
     """Direct chatbox LLM call"""
+    try:
+        response = run_chat_request(
+            payload.role, 
+            payload.description, 
+            payload.question
+        )
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"Chat Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     try:
         result = run_chat_request(payload.model_dump())
         return {"response": result}
@@ -191,6 +177,40 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         print(f"WebSocket Error: {e}")
         manager.disconnect(user_id)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# --- STATIC FILE SERVING ---
+# Check and report what we found for debugging
+print(f"DEBUG: Current directory: {os.getcwd()}")
+print(f"DEBUG: Static folder exists: {os.path.exists('static')}")
+if os.path.exists('static'):
+    print(f"DEBUG: Static contents: {os.listdir('static')}")
+
+# Serve static assets (JS, CSS, Images)
+# Vite builds assets into a folder named 'assets'
+if os.path.exists("static/assets"):
+    print("DEBUG: Mounting /assets from static/assets")
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+else:
+    print("WARNING: static/assets NOT FOUND. Frontend will be unstyled!")
+
+# Serve the main index.html at the root
+@app.get("/")
+async def serve_index():
+    try:
+        return FileResponse("static/index.html")
+    except Exception:
+        return JSONResponse(status_code=404, content={"detail": "Frontend not built"})
+
+# Catch-all route to serve index.html for the React SPA (handles /app/* routes)
+@app.exception_handler(404)
+async def spa_fallback(request, exc):
+    # If the request is for an API, don't fallback to index.html
+    if request.url.path.startswith("/api"):
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+    
+    # Otherwise, serve the React index.html for SPA routing
+    try:
+        if os.path.exists("static/index.html"):
+            return FileResponse("static/index.html")
+        return JSONResponse(status_code=404, content={"detail": "Frontend not built"})
+    except Exception:
+        return JSONResponse(status_code=404, content={"detail": "Frontend not built"})

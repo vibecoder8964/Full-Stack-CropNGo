@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.firebase
+frontend/.firebaserc
+
+# Backend
+backend/venv
+backend/__pycache__
+backend/.env
+backend/render.yaml
+
+# Docker
+Dockerfile
+.dockerignore

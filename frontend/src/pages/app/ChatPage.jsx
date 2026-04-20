@@ -11,7 +11,11 @@ import { db } from '../../firebase'
 import { collection, doc, query, where, onSnapshot, getDoc, setDoc, addDoc, orderBy } from 'firebase/firestore'
 
 const getWsUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+  const apiUrl = import.meta.env.VITE_API_URL
+  if (!apiUrl) {
+    const loc = window.location
+    return (loc.protocol === 'https:' ? 'wss://' : 'ws://') + loc.host
+  }
   return apiUrl.replace('http://', 'ws://').replace('https://', 'wss://')
 }
 
