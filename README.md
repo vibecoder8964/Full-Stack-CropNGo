@@ -100,4 +100,4 @@ API Keys (Gemini, Firebase, GitHub) are managed in the [Google Cloud Console](ht
    ```
 
 ---
-© 2026 CropNGo Team
+© 2026 Full-Stack-CropNGo Team
