@@ -90,13 +90,21 @@ def _make_slug(username: str) -> str:
 
 
 def _ping_google(page_url: str):
-    """Ping Google to re-index the page. Non-critical, always silent."""
+    """Ping Google and Bing to re-index the page. Non-critical, always silent."""
     try:
         http_requests.get(
             f"https://www.google.com/ping?sitemap={page_url}/sitemap.xml",
             timeout=5,
         )
         log.info(f"Pinged Google for {page_url}")
+    except Exception:
+        pass  # Non-critical
+    try:
+        http_requests.get(
+            f"https://www.bing.com/ping?sitemap={page_url}/sitemap.xml",
+            timeout=5,
+        )
+        log.info(f"Pinged Bing for {page_url}")
     except Exception:
         pass  # Non-critical
 
@@ -205,7 +213,7 @@ def publish_farmer_site(farmer_id: str) -> dict:
         page_url = f"https://{GITHUB_BOT_USERNAME}.github.io/cropngo-{slug}"
 
         # ── Step 7: Build SEO block ───────────────────────────────────────────
-        from services.seo_builder import build_seo_block, build_sitemap_xml
+        from services.seo_builder import build_seo_block, build_sitemap_xml, build_robots_txt
 
         # Collect all keywords from all products
         new_keywords = []
@@ -242,9 +250,13 @@ def publish_farmer_site(farmer_id: str) -> dict:
         else:
             commit_msg = f"Update {farmer_name}'s store — {len(all_products)} products"
 
+        robots_txt = build_robots_txt(page_url)
+        robots_b64 = base64.b64encode(robots_txt.encode("utf-8")).decode("utf-8")
+
         files_to_push = [
             {"path": "index.html", "content_b64": html_b64},
             {"path": "sitemap.xml", "content_b64": sitemap_b64},
+            {"path": "robots.txt", "content_b64": robots_b64},
         ]
 
         push_multiple_files(repo, files_to_push, commit_msg)

@@ -56,6 +56,7 @@ class InputPayload(BaseModel):
     question: str
     web_search: Optional[bool] = False
     image_data: Optional[str] = None
+    user_id: Optional[str] = None
 
 # --- CLOUD API ENDPOINTS ---
 @app.post("/api/agent")
@@ -74,22 +75,13 @@ def agent_endpoint(payload: InputPayload):
 def chat_endpoint(payload: InputPayload):
     """Direct chatbox LLM call"""
     try:
-        response = run_chat_request(
-            payload.role, 
-            payload.description, 
-            payload.question
-        )
+        response = run_chat_request(payload.model_dump())
         return {"response": response}
     except Exception as e:
         logger.error(f"Chat Error: {e}")
+        if "Sorry, the LLM is occupied" in str(e) or "try again" in str(e).lower():
+            return {"response": "Sorry, the AI is busy right now. Please try again in a moment."}
         raise HTTPException(status_code=500, detail=str(e))
-    try:
-        result = run_chat_request(payload.model_dump())
-        return {"response": result}
-    except Exception as e:
-        if "Sorry, the LLM is occupied" in str(e):
-            return {"response": "Sorry, the LLM is occupied, Please try again later"}
-        raise e
 
 
 class PublishSitePayload(BaseModel):
@@ -128,6 +120,24 @@ def events_endpoint(req: EventSearchRequest):
         return result
     except Exception as e:
         print(f"[/events] Error: {e}")
+        error_msg = str(e)
+        if 'cascade' in error_msg.lower() or 'try again' in error_msg.lower():
+            return JSONResponse(status_code=503, content={"status": "error", "message": "All AI models are busy. Please try again."})
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+class SEORefreshPayload(BaseModel):
+    api_key: Optional[str] = None
+
+@app.post("/api/seo/refresh-all")
+def seo_refresh_all(payload: SEORefreshPayload = SEORefreshPayload()):
+    """Monthly SEO refresh endpoint. Re-publishes all farmer sites with fresh SEO."""
+    try:
+        from services.seo_scheduler import refresh_all_sites
+        result = refresh_all_sites()
+        return result
+    except Exception as e:
+        logger.error(f"SEO Refresh Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from fastapi import WebSocket, WebSocketDisconnect

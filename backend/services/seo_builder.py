@@ -159,3 +159,15 @@ def build_sitemap_xml(page_url: str) -> str:
     <priority>0.9</priority>
   </url>
 </urlset>"""
+
+
+def build_robots_txt(page_url: str) -> str:
+    """
+    Generate a robots.txt string allowing all crawlers.
+    Points to the sitemap for better indexing.
+    """
+    return f"""User-agent: *
+Allow: /
+
+Sitemap: {page_url}/sitemap.xml
+"""

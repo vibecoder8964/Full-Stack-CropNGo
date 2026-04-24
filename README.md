@@ -1,102 +1,70 @@
-# 🚜 CropNGo: Full-Stack Agricultural Ecosystem
+# 🚜 CropNGo: The Future of Malaysian Agriculture
 
-CropNGo is an AI-powered agricultural platform designed for farmers in Malaysia. It integrates a React frontend with a FastAPI backend, featuring specialized AI agents, real-time market data, and automated farmer website publishing.
-
----
-
-## 🚀 Quick Start (Cloud Mode)
-
-You can use CropNGo in two ways:
-
-### 1. Direct Cloud Access (Recommended)
-Access the fully hosted application directly:
-**[👉 Open CropNGo Live](https://cropngo-app-672662324019.us-central1.run.app)**
+**CropNGo** is a next-generation, AI-powered agricultural ecosystem designed to bridge the gap between traditional farming and modern technology. Built specifically for the Malaysian farming community, it provides a unified platform for intelligence, commerce, and digital presence.
 
 ---
 
-### 2. Local Frontend + Cloud Backend
-If you want to run the frontend locally but use the powerful Cloud AI:
+## 🌟 Our North Star
 
-1. **Clone & Install Frontend:**
-   ```bash
-   cd frontend
-   npm install
-   ```
+### 🎯 Mission
+To empower every Malaysian farmer with AI-driven insights and automated digital tools, enabling them to increase productivity, reduce waste, and expand their market reach effortlessly.
 
-2. **Configure Environment:**
-   Create `frontend/.env`:
-   ```env
-   VITE_GOOGLE_MAPS_API_KEY=your_key
-   ```
-
-3. **Launch:**
-   ```bash
-   npm run dev
-   ```
-   The frontend is pre-configured to automatically communicate with the production API.
+### 🔭 Vision
+To become the leading agricultural technology ecosystem in Southeast Asia, creating a world where technology and nature work in perfect harmony to ensure food security and farmer prosperity.
 
 ---
 
-## 🛠️ Infrastructure & Maintenance (Admin Only)
+## 🚀 Key Functionality
 
-The backend is hosted on **Google Cloud Run** and is fully containerized.
+### 🤖 AgriAgent AI
+A specialized AI consultant powered by Google Gemini. It analyzes user profiles to provide:
+*   **Suitability Search**: Real-time climate and soil analysis for specific crops.
+*   **Demand Forecasting**: Predictive scoring of market demand for agricultural products.
+*   **Product Sourcing**: Automated search for the best local suppliers of fertilizers and tools.
 
-### Deployment Commands:
-To update the live server with new code:
+### 🛒 Unified Marketplace
+A community-driven hub where farmers can list their produce and buy essential supplies. It features:
+*   **E2E Encrypted Chat**: Secure, real-time communication between buyers and sellers.
+*   **Smart Categorization**: Automated unit and quantity management.
 
-1. **Build & Push:**
+### 🔍 Auto-Crawl Event Discovery
+Never miss a learning opportunity again. Our background crawler automatically discovers:
+*   Agricultural **Expos** and Trade Shows.
+*   Hands-on **Workshops** and Training.
+*   **Webinars** and Online Seminars across Malaysia.
+
+### 🌐 Automated SEO Site Publisher
+The moment a farmer lists a product, CropNGo automatically generates a professional, SEO-optimized personal website and pushes it to **GitHub Pages**. This gives every small-scale farmer a global digital footprint instantly.
+
+---
+
+## 🏗️ Technical Architecture (Cloud-Native)
+
+CropNGo is built as a **Unified Full-Stack Container** deployed on **Google Cloud Run**.
+
+*   **Frontend**: React + Vite + Tailwind CSS (bundled into the production container).
+*   **Backend**: FastAPI (Python) serving both the API and the static frontend assets.
+*   **Intelligence**: Google Gemini Pro (Generative AI).
+*   **Database**: Firebase Firestore (NoSQL).
+*   **Hosting**: Google Cloud Run (Serverless) + GitHub Pages (for farmer sites).
+
+---
+
+## 🚀 Deployment & Usage
+
+### 1. Direct Access
+Access the live application (Frontend + Backend) at:
+**[👉 https://cropngo-app-672662324019.us-central1.run.app]**
+
+### 2. Administrator Deployment
+To update the live ecosystem:
+1. **Build & Push**:
    ```powershell
    gcloud builds submit --config cloudbuild.yaml --substitutions=_VITE_GOOGLE_MAPS_API_KEY=your_key .
    ```
-
-2. **Deploy:**
+2. **Deploy**:
    ```powershell
-   gcloud run deploy cropngo-app `
-     --image us-central1-docker.pkg.dev/gen-lang-client-0666746526/cropngo-repo/cropngo-app `
-     --platform managed `
-     --region us-central1 `
-     --allow-unauthenticated
-   ```
-
-### Configuration (Console):
-API Keys (Gemini, Firebase, GitHub) are managed in the [Google Cloud Console](https://console.cloud.google.com/run/detail/us-central1/cropngo-app/revisions) under **Variables & Secrets**.
-
----
-
-## 📝 Features & Tech Stack
-
-### Frontend (React + Vite)
-- **AI Assistant**: Intelligent chat for farming advice.
-- **Marketplace**: Buy/Sell agricultural products.
-- **Events**: Automated search for workshops and expos.
-- **Farmer Profile**: Automated SEO-optimized website generation.
-
-### Backend (FastAPI + Gemini)
-- **AI Agent**: Orchestrates specialized skills for demand, suitability, and product searches.
-- **Automated Publisher**: Generates and pushes static sites to GitHub Pages via bot.
-- **Firebase Integration**: Real-time storage for user data and listings.
-
-### Cloud (Google Cloud Run)
-- **Containerized**: Multi-stage Docker build integrating React and Python.
-- **Auto-Scaling**: Efficiently handles traffic while managing costs.
-
----
-
-## 🐙 How to Safely Commit & Push to GitHub
-
-1. **Stage your changes**:
-   ```bash
-   git add .
-   ```
-
-2. **Commit your changes**:
-   ```bash
-   git commit -m "Update message"
-   ```
-
-3. **Push to GitHub**:
-   ```bash
-   git push
+   gcloud run deploy cropngo-app --image us-central1-docker.pkg.dev/gen-lang-client-0666746526/cropngo-repo/cropngo-app --region us-central1
    ```
 
 ---

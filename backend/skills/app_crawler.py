@@ -3,6 +3,8 @@ import requests
 from datetime import datetime, timedelta
 from google import genai
 from config import Config
+from llm_client import get_gemini_client
+from llm_cascade import call_with_cascade, CascadeExhausted
 
 import os
 import firebase_admin
@@ -68,13 +70,16 @@ def fetch_all_from_firestore(collection_name: str) -> list:
 
 def extract_search_keywords(question: str) -> list:
     """Uses Gemini to extract key search terms from a user question"""
+    client = get_gemini_client()
+    if not client:
+        return []
     try:
         prompt = f"Extract the specific agricultural items, roles, or location names the user is looking for from: '{question}'. Return as a simple comma separated list of strings. If none, return 'None'."
-        response = client.models.generate_content(model=Config.MODEL_NAME, contents=prompt)
-        text = response.text.strip().lower()
+        text = call_with_cascade(prompt=prompt)
+        text = text.strip().lower()
         if "none" in text: return []
         return [k.strip() for k in text.split(",")]
-    except:
+    except (CascadeExhausted, Exception):
         return []
 
 def search_shop_products(question: str) -> list:

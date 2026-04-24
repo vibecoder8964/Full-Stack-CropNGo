@@ -6,7 +6,7 @@ import { db } from '../../firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 const FILTERS = ['All', 'Expo', 'Workshop', 'Webinar', 'Competition']
-const CACHE_KEY = 'cropngo_events_cache'
+const CACHE_KEY_PREFIX = 'cropngo_events_cache_'
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 const profileMessages = {
@@ -27,7 +27,7 @@ function notifyListeners() {
   _bgFetchListeners.forEach(fn => fn())
 }
 
-function startBackgroundFetch(user) {
+function startBackgroundFetch(user, cacheKey) {
   if (_bgFetchLoading) return // Already fetching
   
   _bgFetchLoading = true
@@ -60,8 +60,6 @@ function startBackgroundFetch(user) {
       if (user?.username && result.all_events) {
         try {
           const userRef = doc(db, 'users', user.username)
-          // We fetch the current user doc to not overwrite other fields, 
-          // or we can use { merge: true }
           await setDoc(userRef, { saved_events: result.all_events }, { merge: true })
         } catch (err) {
           console.error("Failed to save events for notifications:", err)
@@ -69,13 +67,13 @@ function startBackgroundFetch(user) {
       }
 
       // Cache with timestamp
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), result }))
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), result }))
       return result
     })
     .catch(err => {
       console.error('Events fetch error:', err)
-      _bgFetchError = err.message?.includes('model traffic') || err.message?.includes('occupied')
-        ? 'Sorry, the LLM is occupied, Please try again later'
+      _bgFetchError = err.message?.includes('model traffic') || err.message?.includes('occupied') || err.message?.includes('try again') || err.message?.includes('cascade')
+        ? 'All AI models are busy right now. Please try again in a moment.'
         : err.message
       return null
     })
@@ -96,6 +94,18 @@ export default function EventsPage() {
 
   const [estimate, setEstimate] = useState('Starting search...')
   const [hasStartedSearch, setHasStartedSearch] = useState(false)
+
+  // Per-user cache key
+  const CACHE_KEY = `${CACHE_KEY_PREFIX}${user?.username || 'anon'}`
+
+  // Reset module-level state when user changes (prevents data leaking between users)
+  useEffect(() => {
+    _bgFetchResult = null
+    _bgFetchError = null
+    _bgFetchLoading = false
+    _bgFetchPromise = null
+    setHasStartedSearch(false)
+  }, [user?.username])
 
   // Subscribe to background fetch state changes
   useEffect(() => {
@@ -144,7 +154,7 @@ export default function EventsPage() {
     } catch {
       localStorage.removeItem(CACHE_KEY)
     }
-  }, [])
+  }, [CACHE_KEY])
 
   const startInitialSearch = () => {
     if (!_bgFetchLoading && user) {
@@ -165,7 +175,7 @@ export default function EventsPage() {
       
       // No valid cache - start fresh search
       setHasStartedSearch(true)
-      startBackgroundFetch(user)
+      startBackgroundFetch(user, CACHE_KEY)
     }
   }
 
@@ -191,7 +201,7 @@ export default function EventsPage() {
     _bgFetchResult = null
     _bgFetchError = null
     localStorage.removeItem(CACHE_KEY)
-    startBackgroundFetch(user)
+    startBackgroundFetch(user, CACHE_KEY)
   }, [user])
 
   const forceRefresh = useCallback(() => {
@@ -201,7 +211,7 @@ export default function EventsPage() {
     _bgFetchResult = null
     _bgFetchError = null
     localStorage.removeItem(CACHE_KEY)
-    startBackgroundFetch(user)
+    startBackgroundFetch(user, CACHE_KEY)
   }, [user])
 
   const data = _bgFetchResult
@@ -323,19 +333,30 @@ export default function EventsPage() {
     )
   }
 
-  // ── ERROR STATE ──────────────────────────────────────────────────────────
+  // ── ERROR STATE / TRY AGAIN PAGE ─────────────────────────────────────────
   if (error && !data) {
+    const isCascadeExhausted = error.includes('try again') || error.includes('cascade') || error.includes('occupied') || error.includes('AI models')
     return (
-      <div className="bg-[#FAFAF5] min-h-[calc(100dvh-4rem)] flex items-center justify-center p-6">
+      <div className="bg-[#FAFAF5] min-h-[calc(100dvh-4rem)] flex items-center justify-center p-6 animate-fade-in">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CalendarOff size={32} />
+          <div className={`w-20 h-20 ${isCascadeExhausted ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'} rounded-full flex items-center justify-center mx-auto mb-5`}>
+            {isCascadeExhausted ? <RefreshCw size={36} /> : <CalendarOff size={36} />}
           </div>
-          <h2 className="text-xl font-display font-bold text-bark-700 mb-2">Unable to load events</h2>
-          <p className="text-bark-500 mb-2">{error}</p>
-          <p className="text-bark-400 text-sm mb-6">Switch to another page and come back to try again.</p>
-          <button onClick={handleRefresh} className="btn-primary w-full shadow-lg shadow-forest-500/20">
-            Retry Search
+          <h2 className="text-2xl font-display font-bold text-bark-700 mb-3">
+            {isCascadeExhausted ? 'AI Models Are Busy' : 'Unable to Load Events'}
+          </h2>
+          <p className="text-bark-500 mb-2 text-base">
+            {isCascadeExhausted
+              ? 'All AI models are currently handling other requests. This usually resolves in a few moments.'
+              : error}
+          </p>
+          <p className="text-bark-400 text-sm mb-8">
+            {isCascadeExhausted
+              ? 'Click below to try again — we\'ll cycle through available models automatically.'
+              : 'Switch to another page and come back to try again.'}
+          </p>
+          <button onClick={forceRefresh} className="btn-primary w-full shadow-lg shadow-forest-500/20 text-lg py-4">
+            {isCascadeExhausted ? '🔄 Try Again' : 'Retry Search'}
           </button>
         </div>
       </div>
@@ -384,6 +405,13 @@ export default function EventsPage() {
             {loading ? 'Searching...' : 'Refresh Results'}
           </button>
         </div>
+
+        {data?.message && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl mb-6 shadow-sm flex items-start gap-3">
+            <span className="text-xl">⚠️</span>
+            <p className="font-body text-sm pt-1">{data.message}</p>
+          </div>
+        )}
 
         {/* PERSONALISATION BAR */}
         <div className="bg-forest-600 rounded-2xl p-4 md:p-6 mb-8 text-white shadow-xl relative overflow-hidden group">

@@ -167,6 +167,8 @@ export default function ProfilePage() {
   }
 
   const saveEdit = () => {
+    // Authorization guard: only allow editing own profile
+    if (!isOwn || !me?.username) return
     updateUser(editData)
     setEditOpen(false)
   }

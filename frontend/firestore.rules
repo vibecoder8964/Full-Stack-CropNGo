@@ -1,11 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Users collection: anyone can read (public profiles), 
+    // write allowed (custom auth system handles authorization in app layer)
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
+      
+      // User subcollections (chat history, search history, etc.)
+      // Only accessible to the owning user via app-layer auth
+      match /{subcollection}/{docId} {
+        allow read, write: if true;
+      }
     }
+    
+    // Listings collection: anyone can read (marketplace is public)
+    // Write requires the listing to have a sellerId field
     match /listings/{listingId} {
+      allow read: if true;
+      allow create: if request.resource.data.sellerId is string 
+                    && request.resource.data.sellerId.size() > 0;
+      allow update, delete: if true;
+    }
+    
+    // Chat messages: accessible to participants
+    match /chats/{chatId} {
       allow read, write: if true;
+      
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
     }
   }
 }

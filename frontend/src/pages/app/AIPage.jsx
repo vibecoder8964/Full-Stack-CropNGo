@@ -75,7 +75,7 @@ function AIChat({ role }) {
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: user.description || '', role: user.role || 'Farmer', question: userText })
+        body: JSON.stringify({ description: user.description || user.bio || '', role: user.role || 'Farmer', question: userText, user_id: user.username })
       })
       const data = await response.json()
       const aiText = data.response || "No response received."
@@ -183,7 +183,7 @@ function WebSearchSelector({ value, onChange }) {
 function FarmerAI() {
   const { user, updateUser } = useAuth()
   
-  const CACHE_KEY = 'cropngo_farmer_cache'
+  const CACHE_KEY = `cropngo_farmer_cache_${user?.username || 'anon'}`
   const loadCache = () => {
     try {
       const stored = localStorage.getItem(CACHE_KEY)
@@ -217,11 +217,12 @@ function FarmerAI() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: user.description || '',
+          description: user.description || user.bio || '',
           role: 'Farmer',
           web_search: user.web_search ?? true,
           question,
-          image_data: form.soilPhoto
+          image_data: form.soilPhoto,
+          user_id: user.username
         })
       })
       const data = await response.json()
@@ -314,7 +315,7 @@ function FarmerAI() {
 function VendorAI() {
   const { user, updateUser } = useAuth()
   
-  const CACHE_KEY = 'cropngo_vendor_cache'
+  const CACHE_KEY = `cropngo_vendor_cache_${user?.username || 'anon'}`
   const loadCache = () => {
     try {
       const stored = localStorage.getItem(CACHE_KEY)
@@ -353,10 +354,11 @@ function VendorAI() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            description: user.description || '',
+            description: user.description || user.bio || '',
             role: 'Vendor',
             web_search: true,
-            question: `Find suppliers that sell: ${crops.join(', ')}. Search the web for external suppliers.`
+            question: `Find suppliers that sell: ${crops.join(', ')}. Search the web for external suppliers.`,
+            user_id: user.username
           })
         })
         const data = await response.json()
@@ -434,7 +436,7 @@ function VendorAI() {
 function SupplierAI() {
   const { user, updateUser } = useAuth()
   
-  const CACHE_KEY = 'cropngo_supplier_cache'
+  const CACHE_KEY = `cropngo_supplier_cache_${user?.username || 'anon'}`
   const loadCache = () => {
     try {
       const stored = localStorage.getItem(CACHE_KEY)
@@ -464,10 +466,11 @@ function SupplierAI() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: user.description || '',
+          description: user.description || user.bio || '',
           role: 'Supplier',
           web_search: user.web_search ?? true,
-          question: `Is there high demand for ${equipments.join(', ')} in the agricultural market? Search the web and app to assess demand.`
+          question: `Is there high demand for ${equipments.join(', ')} in the agricultural market? Search the web and app to assess demand.`,
+          user_id: user.username
         })
       })
       const data = await response.json()

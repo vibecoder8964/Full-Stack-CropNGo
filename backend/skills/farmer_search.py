@@ -8,6 +8,15 @@ from .demand_search import run_demand_search
 from .suitability_search import run_suitability_search
 from .product_search import run_product_search
 from llm_client import get_gemini_client
+from llm_cascade import call_with_cascade, CascadeExhausted
+from config import Config
+
+class FarmerContextExtraction(BaseModel):
+    plant_type: str
+    location: str
+    items_needed: list[str]
+    soil_quality_analysis: Optional[str]
+
 
 def extract_farmer_context(question: str, image_data: Optional[str] = None) -> FarmerContextExtraction:
     client = get_gemini_client()
@@ -42,15 +51,17 @@ def extract_farmer_context(question: str, image_data: Optional[str] = None) -> F
             
     parts.append(prompt)
     
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=parts,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=FarmerContextExtraction,
-        ),
-    )
-    return FarmerContextExtraction.model_validate_json(response.text)
+    try:
+        raw = call_with_cascade(
+            prompt=parts,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=FarmerContextExtraction,
+            )
+        )
+        return FarmerContextExtraction.model_validate_json(raw)
+    except CascadeExhausted:
+        return FarmerContextExtraction(plant_type="Unknown", location="Unknown", items_needed=["fertilizer"], soil_quality_analysis=None)
 
 def run_farmer_search(input_data: dict) -> str:
     question = input_data.get("question", "")

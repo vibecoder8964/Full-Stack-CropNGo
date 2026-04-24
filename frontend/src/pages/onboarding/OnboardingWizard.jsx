@@ -105,7 +105,7 @@ export default function OnboardingWizard() {
 
   const finish = async () => {
     await completeOnboarding(data)
-    logout()
+    navigate('/app/profile', { replace: true })
   }
 
   const steps = [

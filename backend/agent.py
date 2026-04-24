@@ -9,6 +9,7 @@ from skills.farmer_search import run_farmer_search
 from config import Config
 
 from llm_client import get_gemini_client
+from llm_cascade import call_with_cascade, CascadeExhausted
 
 if not Config.GEMINI_API_KEY or "ENTER_YOUR" in Config.GEMINI_API_KEY:
     print("WARNING: GEMINI_API_KEY is not set correctly in .env")
@@ -43,15 +44,18 @@ def route_skill(input_data: dict) -> str:
     if not client:
         return "None"
 
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=SkillRoute,
-        ),
-    )
-    return SkillRoute.model_validate_json(response.text).skill
+    try:
+        raw = call_with_cascade(
+            prompt=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SkillRoute,
+            )
+        )
+        route = SkillRoute.model_validate_json(raw)
+        return route.skill
+    except CascadeExhausted:
+        return "None"
 
 def process_agent_request(input_data: dict) -> str:
     """Entry point for /agent route."""
@@ -75,7 +79,7 @@ def run_chat_request(input_data: dict) -> str:
     description = input_data.get("description", "")
     role = input_data.get("role", "")
     
-    from skills.web_crawler import search_web
+    from skills.web_crawler import ai_search_web as search_web
     from skills.app_crawler import search_shop_products, extract_search_keywords
     
     # Keyword extraction for synchronized search
@@ -117,12 +121,13 @@ def run_chat_request(input_data: dict) -> str:
     if not client:
         return "AI Service is currently unavailable. Please ensure your API key is set correctly in the Cloud Console."
 
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.7,
-            max_output_tokens=600, 
-        ),
-    )
-    return response.text.strip()
+    try:
+        return call_with_cascade(
+            prompt=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=600, 
+            )
+        )
+    except CascadeExhausted:
+        return "Sorry, the AI is busy right now. Please try again in a moment."

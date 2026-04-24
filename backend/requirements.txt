@@ -2,10 +2,9 @@ fastapi
 uvicorn
 pydantic
 google-genai
-ddgs
 httpx
 python-dotenv
-beautifulsoup4
+requests
 google-cloud-aiplatform
 firebase-admin
 PyGithub>=2.1.1

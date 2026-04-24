@@ -14,6 +14,8 @@ def format_product_results(app_results: list, web_results: list, web_search_enab
         price = app.get('price', 'N/A')
         desc = app.get('description', '')
         link = app.get('link', 'https://cropngo-1654b.web.app/app/shop')
+        if link.startswith('/'):
+            link = f"https://cropngo-1654b.web.app{link}"
         output += f"[{i}] **{name}** — RM {price}, {desc}\n    → [View in CropNGo Shop]({link})\n"
     
     if web_search_enabled:

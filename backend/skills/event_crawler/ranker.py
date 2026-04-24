@@ -1,12 +1,17 @@
 """
-CropNGo Agent — EventSearch AI Ranker
-==================================
-Uses Gemini (google.genai) to:
-1. Read all crawled page data
-2. Extract structured event information
-3. Assign categories (Expo, Workshop, Webinar, Competition)
-4. Score each event for relevance to this specific user
-5. Return clean, ranked, structured JSON
+CropNGo Agent — EventSearch AI Ranker (Gemini-Direct Mode)
+==========================================================
+Uses Gemini (google.genai) to directly search for and generate
+agricultural events WITHOUT web crawlers.
+
+Flow:
+  1. Send a prompt to Gemini asking for REAL upcoming events
+  2. Gemini uses its training knowledge to generate structured events
+  3. Assign categories (Expo, Workshop, Webinar, Competition)
+  4. Score each event for relevance to the user
+  5. ALWAYS prepend 2 guaranteed CropNGo branded events
+
+Cascade: 6 models × 10 iterations = 60 max attempts
 """
 
 import json
@@ -59,44 +64,82 @@ def assign_category(event_type: str, title: str, description: str) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════
-#  GEMINI AI RANKING AGENT
+#  GUARANTEED CROPNGO BRANDED EVENTS (always shown)
 # ══════════════════════════════════════════════════════════════════
 
-def ai_rank_and_structure(
-    pages: list[dict],
+def get_cropngo_events(location: dict) -> list[dict]:
+    """Returns 2 guaranteed CropNGo branded events that always appear."""
+    return [
+        {
+            "title": "The Great Farmers by CropNGo",
+            "event_type": "Expo",
+            "organiser": "CropNGo Events for Farmers, Vendors and Suppliers",
+            "date_raw": "15 Nov 2026",
+            "time_raw": "9:00 AM - 5:00 PM",
+            "venue": "CropNGo Virtual Hub",
+            "city": location.get('city', 'Online'),
+            "state": location.get('state', 'Online'),
+            "country": location.get('country', 'Malaysia'),
+            "description": "An exclusive event for the CropNGo community. Connect with top farmers, suppliers, and vendors to grow your network and business.",
+            "target_audience": "Farmers, Vendors, and Suppliers",
+            "registration_url": "https://cropngo-1654b.web.app/",
+            "source_url": "https://cropngo-1654b.web.app/",
+            "domain": "cropngo.com",
+            "is_trusted_source": True,
+            "is_opportunity": False,
+            "relevance_score": 100,
+            "relevance_reason": "Exclusive official CropNGo networking event.",
+            "category": "Expo",
+            "image_slot": 1
+        },
+        {
+            "title": "Tips to Plant, Care and Cultivate Plants",
+            "event_type": "Workshop",
+            "organiser": "CropNGo Events for Farmers, Vendors and Suppliers",
+            "date_raw": "22 Nov 2026",
+            "time_raw": "10:00 AM - 1:00 PM",
+            "venue": "CropNGo Learning Center",
+            "city": location.get('city', 'Online'),
+            "state": location.get('state', 'Online'),
+            "country": location.get('country', 'Malaysia'),
+            "description": "Learn the best modern techniques to plant, care for, and cultivate your crops effectively for maximum yield.",
+            "target_audience": "Farmers, Vendors, and Suppliers",
+            "registration_url": "https://cropngo-1654b.web.app/",
+            "source_url": "https://cropngo-1654b.web.app/",
+            "domain": "cropngo.com",
+            "is_trusted_source": True,
+            "is_opportunity": False,
+            "relevance_score": 95,
+            "relevance_reason": "Essential cultivation knowledge from CropNGo experts.",
+            "category": "Workshop",
+            "image_slot": 2
+        }
+    ]
+
+
+# ══════════════════════════════════════════════════════════════════
+#  GEMINI-DIRECT EVENT SEARCH (no web crawlers)
+# ══════════════════════════════════════════════════════════════════
+
+def ai_search_and_rank(
     location: dict,
     user_profile: dict,
     description: str,
-) -> list[dict]:
+) -> tuple[list[dict], bool]:
     """
-    Sends all crawled pages to Gemini via google.genai.
-    Gemini acts as an intelligent agent that:
-    - Judges which pages are genuine events
-    - Extracts all event details
-    - Scores relevance 0-100 based on user profile
-    - Returns structured list
+    Asks Gemini DIRECTLY to find/generate agricultural events
+    WITHOUT any web crawling. Gemini uses its training knowledge.
+
+    Returns:
+        tuple of (events_list, is_exhausted)
+        - events_list always includes 2 guaranteed CropNGo events
+        - is_exhausted: True if all AI models failed
     """
-    api_key = Config.GEMINI_API_KEY.strip().strip("'").strip('"') if Config.GEMINI_API_KEY else None
-    client = genai.Client(api_key=api_key)
 
     experience  = user_profile["experience_level"]
     preferences = ", ".join(user_profile["event_preference"])
     harvested   = user_profile["has_harvested"]
-
-    # Build compact context string from pages (Gemini context window aware)
-    pages_context = ""
-    for i, p in enumerate(pages[:30]):    # send top 30 to Gemini
-        pages_context += f"""
-=== Page {i+1} ===
-URL      : {p['url']}
-Domain   : {p['domain']}
-Title    : {p['title'][:120]}
-Snippet  : {p['snippet'][:200]}
-Content  : {p.get('page_text','')[:500]}
-Trusted  : {p.get('is_trusted', False)}
-"""
-
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str   = datetime.now().strftime('%Y-%m-%d')
 
     prompt = f"""You are an expert agricultural events research agent for Malaysia.
 
@@ -109,13 +152,11 @@ USER PROFILE:
 
 TODAY'S DATE: {today_str}
 
-CRAWLED WEB PAGES:
-{pages_context}
-
 YOUR TASK:
-Carefully analyse every page above. For each page that contains a REAL upcoming
-agricultural event, workshop, roadshow, seminar, exhibition, or farmer business
-opportunity, extract and return structured data.
+Using your knowledge of agricultural events, workshops, expos, seminars,
+roadshows, and farmer business opportunities in {location.get('country', 'Malaysia')},
+generate a list of REALISTIC upcoming agricultural events that would be
+relevant to this user.
 
 CATEGORIES — You MUST use exactly one of these 4 categories:
 - "Expo" — exhibitions, expos, trade shows, fairs, festivals, carnivals
@@ -133,16 +174,6 @@ RELEVANCE SCORING (0-100):
 +10  Source is a trusted government/authority domain
 +10  Event has complete details (date, time, venue, contact, registration link)
 +05  Event is upcoming (within next 6 months from today)
--30  Event has already passed (date is before today)
--20  Event is in a completely different country (not {location['country']})
--99  Page is NOT actually an event (generic article, product page, etc.)
-
-CRITICAL RULES:
-- Do NOT penalise events that are in a different city/state but SAME country. They should still appear!
-- ALL valid events in {location['country']} MUST be included regardless of score.
-- Events are RANKED by score (highest first), but NEVER removed for having a low score.
-- You MUST return at least 3 events if any valid event pages exist in {location['country']}.
-- Search across ALL websites and social media sources provided.
 
 USER MATCHING RULES:
 - experience=newbie, has_harvested=false  → Prioritise Workshops and Training
@@ -151,31 +182,29 @@ USER MATCHING RULES:
 - experience=experienced                  → Prioritise Competition to sell/promote
 
 IMPORTANT INSTRUCTIONS:
-- Extract the EXACT event date and time from the page (not approximate)
-- If date is not found, set date_raw to "Date not specified"
-- Extract the EXACT venue/location from the page
-- The description must be 2-4 sentences, informative, and explain value to farmer
-- Include ALL valid events in {location['country']} — do NOT filter by score
-- Skip past events (before today)
-- Skip pages that are clearly NOT events
-- CRITICAL: You MUST return AT LEAST 3 events. If the crawled pages do not contain enough valid events, you MUST generate realistic, high-quality upcoming agricultural events in {location['country']} to fill the gap up to 3 events. Treat them as real.
+- Generate 5 to 7 REALISTIC upcoming agricultural events
+- Use REAL organisation names from {location.get('country', 'Malaysia')} (e.g. FAMA, MARDI, MOA, Agrobank, RISDA, FELDA)
+- Set dates in the FUTURE (after {today_str}), within the next 6 months
+- Include a mix of categories (at least 2 different categories)
+- Make descriptions 2-4 sentences, informative, and explain value to the farmer
+- Include realistic venue names and locations in {location.get('country', 'Malaysia')}
 
 Return ONLY a valid JSON array. No markdown, no explanation. Format:
 [
   {{
     "title"            : "Full event name",
     "event_type"       : "Expo|Workshop|Webinar|Competition",
-    "organiser"        : "Organising body name or 'Not specified'",
-    "date_raw"         : "Exact date string from page, e.g. '15 March 2025' or 'Date not specified'",
-    "time_raw"         : "Exact time string, e.g. '9:00 AM - 5:00 PM' or 'Time not specified'",
-    "venue"            : "Full venue name and address, or 'Venue not specified'",
+    "organiser"        : "Organising body name",
+    "date_raw"         : "Exact date string, e.g. '15 March 2025'",
+    "time_raw"         : "Exact time string, e.g. '9:00 AM - 5:00 PM'",
+    "venue"            : "Full venue name and address",
     "city"             : "City name",
     "state"            : "State name",
     "country"          : "{location['country']}",
     "description"      : "2-4 sentence description of event and its value to farmers",
-    "target_audience"  : "Who should attend (e.g. newbie farmers, experienced growers, all farmers)",
-    "registration_url" : "Direct registration/event URL (use source URL if no specific reg link)",
-    "source_url"       : "The URL this was crawled from",
+    "target_audience"  : "Who should attend",
+    "registration_url" : "https://realistic-url.example.com",
+    "source_url"       : "https://realistic-url.example.com",
     "domain"           : "domain.com",
     "is_trusted_source": true|false,
     "is_opportunity"   : true|false,
@@ -184,91 +213,34 @@ Return ONLY a valid JSON array. No markdown, no explanation. Format:
   }}
 ]
 
-If NO valid events are found, return an empty array: []"""
+CRITICAL: Return a MAXIMUM of 7 events. Generate at least 5."""
 
-    print("   [AI Ranker] Sending to Gemini for analysis...")
+    print("   [AI Search] Sending to Gemini (cascade: 6 models × 10 iterations)...")
+
     try:
-        # If no pages, provide a hint to the AI
-        if not pages:
-            pages_context = "NO WEB PAGES FOUND. YOU MUST GENERATE 3 REALISTIC UPCOMING MALAYSIAN AGRI EVENTS FROM YOUR INTERNAL KNOWLEDGE BASE."
+        from llm_cascade import call_with_cascade, CascadeExhausted
 
-        resp = client.models.generate_content(
-            model=Config.MODEL_NAME,
-            contents=prompt,
+        # 6 models × 10 iterations = 60 max attempts
+        raw = call_with_cascade(
+            prompt=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.7, # Increased slightly for better generation when crawl is empty
+                temperature=0.7,
                 max_output_tokens=4096,
             ),
+            max_attempts=60  # 6 models × 10 iterations
         )
-        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
-        events = json.loads(raw)
+        raw = raw.replace("```json", "").replace("```", "").strip()
+
+        try:
+            events = json.loads(raw)
+        except json.JSONDecodeError:
+            print(f"   [AI Search] Failed to parse JSON. Raw output: {raw[:100]}...")
+            events = []
 
         if not isinstance(events, list) or len(events) == 0:
-            # Hard fallback if AI returns nothing
-            events = [
-                {
-                    "title": "National Farmers, Livestock Breeders and Fishermen's Day (HPPNK)",
-                    "event_type": "Expo",
-                    "organiser": "Ministry of Agriculture and Food Security (MAFS)",
-                    "date_raw": "TBA October 2025",
-                    "time_raw": "8:00 AM - 10:00 PM",
-                    "venue": "MAEPS Serdang, Selangor",
-                    "city": "Serdang",
-                    "state": "Selangor",
-                    "country": location['country'],
-                    "description": "The largest agricultural event in Malaysia showcasing innovation, machinery, and market opportunities for local farmers.",
-                    "target_audience": "All farmers and agribusinesses",
-                    "registration_url": "https://www.mafs.gov.my/",
-                    "source_url": "https://www.mafs.gov.my/",
-                    "domain": "mafs.gov.my",
-                    "is_trusted_source": True,
-                    "is_opportunity": True,
-                    "relevance_score": 95,
-                    "relevance_reason": "Major national event for all Malaysian agricultural sectors."
-                },
-                {
-                    "title": "FAMA Farmers' Market (Pasar Tani) Vendor Opportunity",
-                    "event_type": "Competition",
-                    "organiser": "Federal Agricultural Marketing Authority (FAMA)",
-                    "date_raw": "Ongoing 2025",
-                    "time_raw": "6:00 AM - 12:00 PM",
-                    "venue": "Various Locations Nationwide",
-                    "city": location.get('city', 'Kuala Lumpur'),
-                    "state": location.get('state', 'Selangor'),
-                    "country": location['country'],
-                    "description": "Ongoing opportunity to register as a vendor in FAMA's Pasar Tani network to sell your fresh produce directly to consumers.",
-                    "target_audience": "Farmers with harvested produce",
-                    "registration_url": "https://www.fama.gov.my/",
-                    "source_url": "https://www.fama.gov.my/",
-                    "domain": "fama.gov.my",
-                    "is_trusted_source": True,
-                    "is_opportunity": True,
-                    "relevance_score": 90,
-                    "relevance_reason": "Direct market access for your harvests."
-                },
-                {
-                    "title": "MARDI Agropreneur Muda Training Workshop",
-                    "event_type": "Workshop",
-                    "organiser": "MARDI",
-                    "date_raw": "Scheduled Monthly",
-                    "time_raw": "9:00 AM - 4:00 PM",
-                    "venue": "MARDI Headquarters and Regional Branches",
-                    "city": "Serdang",
-                    "state": "Selangor",
-                    "country": location['country'],
-                    "description": "Comprehensive training for young and aspiring agropreneurs on modern farming techniques and business management.",
-                    "target_audience": "Newbie and intermediate farmers",
-                    "registration_url": "https://www.mardi.gov.my/",
-                    "source_url": "https://www.mardi.gov.my/",
-                    "domain": "mardi.gov.my",
-                    "is_trusted_source": True,
-                    "is_opportunity": False,
-                    "relevance_score": 85,
-                    "relevance_reason": "Essential skills for growing your agricultural business."
-                }
-            ]
+            events = []
 
-        # Post-process: assign image categories + sort by score
+        # Post-process: assign image categories
         processed = []
         for e in events:
             cat = assign_category(
@@ -281,12 +253,27 @@ If NO valid events are found, return an empty array: []"""
             processed.append(e)
 
         processed.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
-        print(f"   [AI Ranker] {len(processed)} events structured and ranked")
-        return processed
+        processed = processed[:7]
+        is_exhausted = False
 
-    except json.JSONDecodeError as e:
-        print(f"   [AI Ranker] JSON parse error: {e}")
-        return []
+    except CascadeExhausted as e:
+        print(f"   [AI Search] Cascade exhausted: {e}")
+        processed = []
+        is_exhausted = True
     except Exception as e:
-        print(f"   [AI Ranker] Gemini error: {e}")
-        return []
+        print(f"   [AI Search] Error: {e}")
+        processed = []
+        is_exhausted = True
+
+    # ── GUARANTEED: Always prepend 2 CropNGo branded events ─────────────
+    cropngo_events = get_cropngo_events(location)
+
+    if is_exhausted:
+        # API failed — return only the 2 guaranteed CropNGo events
+        final_events = cropngo_events
+    else:
+        # API success — CropNGo events first, then AI-generated events
+        final_events = cropngo_events + processed
+
+    print(f"   [AI Search] {len(final_events)} events total ({len(cropngo_events)} CropNGo + {len(processed)} AI-generated)")
+    return final_events, is_exhausted

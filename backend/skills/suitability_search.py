@@ -5,6 +5,13 @@ from pydantic import BaseModel
 
 from config import Config
 from llm_client import get_gemini_client
+from llm_cascade import call_with_cascade, CascadeExhausted
+from formatter import format_suitability
+
+class CropLocationExtraction(BaseModel):
+    crop: str
+    location: str
+
 
 def extract_crop_and_location(input_data: dict) -> CropLocationExtraction:
     client = get_gemini_client()
@@ -16,15 +23,17 @@ def extract_crop_and_location(input_data: dict) -> CropLocationExtraction:
     
     prompt = f"User profile: {description}\nQuestion: {question}\nExtract the main crop type and the location. Default to user location if not explicitly in the question."
     
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=CropLocationExtraction,
-        ),
-    )
-    return CropLocationExtraction.model_validate_json(response.text)
+    try:
+        raw = call_with_cascade(
+            prompt=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=CropLocationExtraction,
+            )
+        )
+        return CropLocationExtraction.model_validate_json(raw)
+    except CascadeExhausted:
+        return CropLocationExtraction(crop="Unknown", location="Unknown")
 
 class SuitabilityAssessment(BaseModel):
     suitability: str # [Very Suitable, Suitable, Medium Risk, Risky]
@@ -110,16 +119,16 @@ def run_suitability_search(input_data: dict) -> str:
     - suggestion: What the farmer should do or watch out for. Max length 200 words, minimum 30 words. You MUST include a MAXIMUM of 5 external web links if applicable.
     """
     
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=SuitabilityAssessment,
-            temperature=0.2
+    try:
+        raw = call_with_cascade(
+            prompt=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SuitabilityAssessment,
+                temperature=0.2
+            )
         )
-    )
-    
-    assessment = SuitabilityAssessment.model_validate_json(response.text)
-    
-    return format_suitability(assessment.suitability, assessment.reason, assessment.suggestion)
+        assessment = SuitabilityAssessment.model_validate_json(raw)
+        return format_suitability(assessment.suitability, assessment.reason, assessment.suggestion)
+    except CascadeExhausted:
+        return format_suitability("Unknown", "AI models are currently occupied.", "Please try again later.")

@@ -34,6 +34,7 @@ export default function ShopPage() {
   const [newListing, setNewListing] = useState({ name: '', description: '', price: '', category: '', unit: '', image: null, isDraft: false, tags: [] })
   const [showOtherUnit, setShowOtherUnit] = useState(false)
   const [publishedUrl, setPublishedUrl] = useState(null)
+  const [seoPublishing, setSeoPublishing] = useState(false)
 
   // ── Firestore listings state ─────────────────────────────────────────────
   const [allListings, setAllListings] = useState([])
@@ -137,7 +138,7 @@ export default function ShopPage() {
         longitude: user.longitude || null,
         rating: 0,
         reviewCount: 0,
-        isDraft: false, // It's published now
+        isDraft: false,
         tags: formToSubmit.tags,
         createdAt: new Date().toISOString(),
       }
@@ -145,12 +146,32 @@ export default function ShopPage() {
       await addDoc(collection(db, 'listings'), listingData)
       await fetchListings()
 
-      // SEO is now handled dynamically via React Helmet on the profile page
-      const profileUrl = window.location.origin + '/app/profile/' + user.username
-      setPublishedUrl(profileUrl)
+      // Trigger SEO site publisher on the backend
+      setSeoPublishing(true)
+      setPublishing(false)
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || ''
+        const seoRes = await fetch(`${API_URL}/publish-site`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ farmer_id: user.username })
+        })
+        const seoData = await seoRes.json()
+        if (seoData.url) {
+          setPublishedUrl(seoData.url)
+        } else {
+          // Fallback: show profile URL if SEO publish had an issue
+          setPublishedUrl(window.location.origin + '/app/profile/' + user.username)
+        }
+      } catch (seoErr) {
+        console.warn('SEO site publish failed:', seoErr)
+        setPublishedUrl(window.location.origin + '/app/profile/' + user.username)
+      }
+      setSeoPublishing(false)
     } catch (e) {
       console.error('Failed to publish listing:', e)
       alert('Failed to publish listing. Please check your connection.')
+      setSeoPublishing(false)
     }
     setPublishing(false)
   }
@@ -406,7 +427,7 @@ export default function ShopPage() {
               />
             </div>
           )}
-          <TagInput label="Tags/Keywords (This is important to gain exposure and SEO)" options={[]} selected={newListing.tags} onChange={tags => setNewListing(l => ({ ...l, tags }))} allowOther placeholder="Add tags..." />
+          <TagInput label="Tags/Keywords (this is important to gain SEO for the published website!, EXAMPLE: durian, musang king, cheap and good)" options={[]} selected={newListing.tags} onChange={tags => setNewListing(l => ({ ...l, tags }))} allowOther placeholder="Add tags..." />
           {/* Draft toggle */}
           <div className="flex items-center gap-3">
             <button
@@ -439,6 +460,25 @@ export default function ShopPage() {
           </div>
         </div>
       </Modal>
+
+      {/* SEO Publishing Loading Overlay */}
+      {seoPublishing && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+          <div className="bg-white rounded-3xl p-10 max-w-md w-[90%] text-center shadow-2xl">
+            <div className="w-20 h-20 bg-forest-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <svg className="animate-spin text-forest-600" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            </div>
+            <h3 className="font-display font-bold text-xl text-bark-700 mb-2">Publishing Your SEO Website</h3>
+            <p className="text-bark-500 text-sm font-body mb-4">Creating your product page on GitHub Pages with full SEO optimization...</p>
+            <div className="flex items-center justify-center gap-2 text-forest-600">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm font-body font-semibold">This may take 10-20 seconds</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       <Modal open={!!publishedUrl} onClose={() => setPublishedUrl(null)} title="Listing Published!">

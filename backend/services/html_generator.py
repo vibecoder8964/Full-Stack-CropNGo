@@ -265,6 +265,21 @@ def generate_full_html(farmer: dict, all_products: list, seo_block: dict) -> str
 {schema_json_ld}
     </script>
 
+    <!-- Breadcrumb Schema.org -->
+    <script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {{"@type": "ListItem", "position": 1, "name": "CropNGo", "item": "https://cropngo-1654b.web.app"}},
+    {{"@type": "ListItem", "position": 2, "name": "{farmer_name}", "item": "{canonical_url}"}}
+  ]
+}}
+    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+
     <style>{_build_css()}</style>
 </head>"""
 

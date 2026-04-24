@@ -3,9 +3,15 @@ from google.genai import types
 from pydantic import BaseModel
 
 from .app_crawler import search_shop_products
-from .web_crawler import search_web
+from .web_crawler import ai_search_web as search_web
 from config import Config
 from llm_client import get_gemini_client
+from llm_cascade import call_with_cascade, CascadeExhausted
+from formatter import format_product_results
+
+class ItemExtraction(BaseModel):
+    items: list[str]
+
 
 def extract_items(input_data: dict) -> list[str]:
     client = get_gemini_client()
@@ -15,15 +21,17 @@ def extract_items(input_data: dict) -> list[str]:
     question = input_data.get("question", "")
     prompt = f"Question: {question}\nExtract the specific items or products the user is looking for. Return as a list of strings."
     
-    response = client.models.generate_content(
-        model=Config.MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=ItemExtraction,
-        ),
-    )
-    return ItemExtraction.model_validate_json(response.text).items
+    try:
+        raw = call_with_cascade(
+            prompt=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ItemExtraction,
+            )
+        )
+        return ItemExtraction.model_validate_json(raw).items
+    except CascadeExhausted:
+        return ["fertilizer"]
 
 def run_product_search(input_data: dict, specified_items: list[str] = None) -> str:
     web_search_enabled = input_data.get("web_search", False)

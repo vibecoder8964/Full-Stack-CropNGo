@@ -143,6 +143,26 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
+    // Clear all user-specific caches before wiping user state
+    if (user?.username) {
+      const username = user.username
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (
+          key.startsWith(`cropngo_chat_history_${username}`) ||
+          key.startsWith(`cropngo_farmer_cache_${username}`) ||
+          key.startsWith(`cropngo_vendor_cache_${username}`) ||
+          key.startsWith(`cropngo_supplier_cache_${username}`) ||
+          key.startsWith(`cropngo_events_cache_${username}`)
+        )) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k))
+    }
+    // Also clear global event caches that may linger
+    localStorage.removeItem('cropngo_events_cache')
     setUser(null)
     setIsOnboarded(false)
     localStorage.removeItem(STORAGE_KEY)
@@ -150,7 +170,7 @@ export function AuthProvider({ children }) {
   }
 
   const updateUser = async (updates) => {
-    if (!user) return
+    if (!user || !user.username) return
     const dr = doc(db, 'users', user.username)
     
     // Start updating user doc immediately
