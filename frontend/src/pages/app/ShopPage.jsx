@@ -84,12 +84,21 @@ export default function ShopPage() {
 
   // ── Upload image to Firebase Storage and return download URL ─────────────
   const uploadImage = async (base64DataUrl) => {
-    const res = await fetch(base64DataUrl)
-    const blob = await res.blob()
-    const fileName = `listings/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`
-    const storageRef = ref(storage, fileName)
-    await uploadBytes(storageRef, blob)
-    return await getDownloadURL(storageRef)
+    const uploadTask = async () => {
+      const res = await fetch(base64DataUrl)
+      const blob = await res.blob()
+      const fileName = `listings/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`
+      const storageRef = ref(storage, fileName)
+      await uploadBytes(storageRef, blob)
+      return await getDownloadURL(storageRef)
+    }
+    
+    // Add a 10-second timeout so a broken Firebase Storage config doesn't hang the publish flow forever
+    const timeoutTask = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Firebase Storage upload timed out after 10s')), 10000)
+    )
+    
+    return Promise.race([uploadTask(), timeoutTask])
   }
 
   // ── Publish listing to Firestore ─────────────────────────────────────────
@@ -147,6 +156,9 @@ export default function ShopPage() {
       await fetchListings()
 
       // Trigger SEO site publisher on the backend
+      setAddOpen(false)
+      setNewListing({ name: '', description: '', price: '', unit: '', category: '', tags: [], isDraft: false })
+      localStorage.removeItem('cropngo_shop_draft')
       setSeoPublishing(true)
       setPublishing(false)
       try {

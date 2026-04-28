@@ -22,6 +22,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
 COPY backend/ ./
+# Copy root .env file so the backend can read GITHUB_TOKEN
+COPY .env ./
 
 # Copy built frontend from Stage 1 to 'static' directory in the backend
 # This 'static' directory is what FastAPI serves

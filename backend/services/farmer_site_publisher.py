@@ -165,44 +165,10 @@ def publish_farmer_site(farmer_id: str) -> dict:
                 log.info(f"  → Using fallback image for '{product.get('name')}'")
 
         # ── Step 4: Build slug ────────────────────────────────────────────────
-        base_slug = _make_slug(farmer_id)
-        
-        # Build product slug string
-        product_names = [p.get("name", "").lower() for p in all_products if p.get("name")]
-        
-        # Filter and clean product names
-        clean_names = []
-        for name in product_names:
-            cn = re.sub(r'[^a-z0-9]', '', name.split()[0]) # take first word to avoid massive urls
-            if cn and cn not in clean_names:
-                clean_names.append(cn)
-                
-        if len(clean_names) > 0:
-            if len(clean_names) <= 4:
-                prod_slug = "_and_".join(clean_names)
-            else:
-                prod_slug = "_and_".join(clean_names[:4]) + "_and_more"
-            slug = f"{base_slug}-{prod_slug}"
-        else:
-            slug = base_slug
-            
+        slug = _make_slug(farmer_id)
         farmer["slug"] = slug
-
-        # ── Check if we need to rename an existing repo ───────────────────────
-        old_repo_name = farmer.get("site_repo")
-        new_repo_name = f"cropngo-{slug}"
         
-        from services.github_api import _get_github_client
-        if old_repo_name and old_repo_name != new_repo_name:
-            try:
-                g = _get_github_client()
-                user = g.get_user()
-                existing = user.get_repo(old_repo_name)
-                existing.edit(name=new_repo_name)
-                log.info(f"Renamed repo from {old_repo_name} to {new_repo_name}")
-                time.sleep(2) # Wait for GitHub to process the rename
-            except Exception as e:
-                log.warning(f"Failed to rename repo from {old_repo_name} to {new_repo_name}: {e}")
+        new_repo_name = f"cropngo-{slug}"
 
         # ── Step 5: Get or create GitHub repo ─────────────────────────────────
         from services.github_api import get_or_create_repo, push_multiple_files
