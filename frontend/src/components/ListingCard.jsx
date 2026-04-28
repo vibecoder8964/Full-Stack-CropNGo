@@ -19,13 +19,16 @@ export default function ListingCard({ listing }) {
   const navigate = useNavigate()
   const { name, description, price, unit, category, sellerId, sellerName, sellerRole,
           rating, reviewCount, distance } = listing
+  const productPath = listing.keyword
+    ? `/app/shop/product/${encodeURIComponent(listing.keyword)}`
+    : `/app/shop/${listing.id}`
 
   // Resolve styles precisely
   const style = CATEGORY_STYLES[category] || CATEGORY_STYLES.default
 
   return (
     <div 
-      onClick={() => navigate(`/app/shop/${listing.id}`)}
+      onClick={() => navigate(productPath)}
       className="card flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden text-left border border-cream-200 mx-auto w-full cursor-pointer"
     >
       

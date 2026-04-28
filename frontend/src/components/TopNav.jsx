@@ -4,7 +4,7 @@ import { Sprout, User, LogOut, Bell } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
 import { db } from '../firebase'
-import { doc, onSnapshot, collection, query, where, getDoc } from 'firebase/firestore'
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore'
 
 const TABS = [
   { label: 'Profile', path: '/app/profile' },
@@ -199,7 +199,16 @@ export default function TopNav() {
                     <div className="p-6 text-center text-sm text-bark-400 font-body">No new notifications</div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} className="p-3 border-b border-cream-100 hover:bg-[#F8F6F1] transition-colors text-sm font-body text-bark-700">
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          if (n.type === 'wanted' && n.from) {
+                            navigate(`/app/profile/${n.from}`)
+                            setShowNotifMenu(false)
+                          }
+                        }}
+                        className={`p-3 border-b border-cream-100 transition-colors text-sm font-body text-bark-700 ${n.type === 'wanted' && n.from ? 'hover:bg-[#F8F6F1] cursor-pointer' : ''}`}
+                      >
                         {n.text}
                       </div>
                     ))

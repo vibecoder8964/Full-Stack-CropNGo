@@ -61,7 +61,7 @@ export default function App() {
 
       {/* Main App */}
       <Route path="/app/profile"    element={<RequireOnboarding><AppShell><ProfilePage /></AppShell></RequireOnboarding>} />
-      <Route path="/app/profile/:id" element={<RequireOnboarding><AppShell><ProfilePage /></AppShell></RequireOnboarding>} />
+      <Route path="/app/profile/:id" element={<AppShell><ProfilePage /></AppShell>} />
       <Route path="/app/shop"       element={<RequireOnboarding><AppShell><ShopPage /></AppShell></RequireOnboarding>} />
       <Route path="/app/shop/:id"   element={<RequireOnboarding><AppShell><ProductDetailPage /></AppShell></RequireOnboarding>} />
       <Route path="/app/shop/product/:keyword" element={<AppShell><ProductKeywordPage /></AppShell>} />

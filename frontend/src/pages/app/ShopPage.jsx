@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Search, SlidersHorizontal, X, Tractor, Wrench, Megaphone, ChevronDown, Loader2, Tag, Copy, ExternalLink } from 'lucide-react'
-import { collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { collection, addDoc, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '../../firebase'
 import { CATEGORIES } from '../../data/mockListings'
@@ -97,6 +97,8 @@ export default function ShopPage() {
     return Promise.race([uploadTask(), timeoutTask])
   }
 
+  const normalizeKeyword = (value) => value.trim().replace(/\s+/g, ' ')
+
   // Generate unique keyword: if same keyword exists (case-sensitive), append number
   const generateUniqueKeyword = (keyword) => {
     const existing = allListings.filter(l => {
@@ -117,7 +119,9 @@ export default function ShopPage() {
 
   const publishListing = async () => {
     if (!newListing.name.trim()) return alert('Please enter a product name.')
-    if (!newListing.keyword.trim()) return alert('Please enter a keyword for your product page.')
+    const normalizedKeyword = normalizeKeyword(newListing.keyword)
+    if (!normalizedKeyword) return alert('Please enter a keyword for your product page.')
+    if (normalizedKeyword.includes(',')) return alert('Only one keyword is allowed. Please remove commas.')
 
     setPublishing(true)
 
@@ -141,7 +145,7 @@ export default function ShopPage() {
         catch (imgErr) { console.warn('Image upload failed:', imgErr) }
       }
 
-      const uniqueKeyword = generateUniqueKeyword(formToSubmit.keyword.trim())
+      const uniqueKeyword = generateUniqueKeyword(normalizedKeyword)
       const keywordSlug = encodeURIComponent(uniqueKeyword)
 
       const listingData = {
@@ -411,7 +415,7 @@ export default function ShopPage() {
             <input type="text" value={newListing.keyword} onChange={e => setNewListing(l => ({ ...l, keyword: e.target.value }))} className="input-field" placeholder="e.g. musang king durian" />
             {newListing.keyword && (
               <p className="text-xs text-forest-600 mt-1 font-body">
-                Your product page: <span className="font-bold">{window.location.origin}/app/shop/product/{encodeURIComponent(newListing.keyword.trim())}</span>
+                Your product page: <span className="font-bold">{window.location.origin}/app/shop/product/{encodeURIComponent(normalizeKeyword(newListing.keyword))}</span>
               </p>
             )}
           </div>
