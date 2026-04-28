@@ -84,24 +84,7 @@ def chat_endpoint(payload: InputPayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class PublishSitePayload(BaseModel):
-    farmer_id: str
 
-@app.post("/publish-site")
-def publish_site_endpoint(payload: PublishSitePayload):
-    """
-    Non-blocking SEO site publisher.
-    Called by the frontend after a product is published to Firestore.
-    Creates or updates the farmer's GitHub Pages SEO site.
-    """
-    try:
-        from services.farmer_site_publisher import publish_farmer_site
-        result = publish_farmer_site(farmer_id=payload.farmer_id)
-        logger.info(f"Site published: {result}")
-        return result
-    except Exception as e:
-        logger.error(f"Site publish failed silently: {e}")
-        return {"url": None, "status": "error", "repo": None}
 
 @app.post("/events")
 def events_endpoint(req: EventSearchRequest):
@@ -126,19 +109,7 @@ def events_endpoint(req: EventSearchRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 
-class SEORefreshPayload(BaseModel):
-    api_key: Optional[str] = None
 
-@app.post("/api/seo/refresh-all")
-def seo_refresh_all(payload: SEORefreshPayload = SEORefreshPayload()):
-    """Monthly SEO refresh endpoint. Re-publishes all farmer sites with fresh SEO."""
-    try:
-        from services.seo_scheduler import refresh_all_sites
-        result = refresh_all_sites()
-        return result
-    except Exception as e:
-        logger.error(f"SEO Refresh Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 from fastapi import WebSocket, WebSocketDisconnect
 import json

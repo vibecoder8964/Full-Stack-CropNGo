@@ -83,29 +83,43 @@ export default function TopNav() {
     unsubs.push(onSnapshot(doc(db, 'users', user.username), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data()
+
+        // Wanted Notifications
+        if (data.notifications && Array.isArray(data.notifications)) {
+          const wantedNotifs = data.notifications
+            .filter(n => n.type === 'wanted')
+            .map(n => ({
+              id: `wanted-${n.from}-${n.time}`,
+              text: n.text,
+              type: 'wanted',
+              from: n.from,
+              time: new Date(n.time),
+            }))
+
+          if (wantedNotifs.length > 0) {
+            setNotifications(prev => {
+              const existingIds = new Set(prev.map(n => n.id))
+              const toAdd = wantedNotifs.filter(u => !existingIds.has(u.id))
+              return [...toAdd, ...prev].slice(0, 15)
+            })
+          }
+        }
+
+        // Event Notifications
         if (data.saved_events && Array.isArray(data.saved_events)) {
-          const now = new Date()
           const upcoming = []
-          
           data.saved_events.forEach(ev => {
              if (ev.date_raw) {
-                // Try parse date. It's often "Oct 12 - Oct 14" or similar. We do a naive parse.
-                // Assuming it has a parsable start date or we extract it.
-                // For safety, we just string match or try a basic Date() cast.
-                // Since event dates are messy strings, we can't always parse them perfectly here.
-                // We will add a mock deterministic notification: 
-                // We'll show a notification if the event is stored in the DB, for demo purposes.
-                upcoming.push({ 
-                  id: `evt-${ev.id}`, 
-                  text: `Upcoming Event: ${ev.title} is approaching soon!`, 
-                  type: 'event', 
-                  time: new Date() 
+                upcoming.push({
+                  id: `evt-${ev.id}`,
+                  text: `Upcoming Event: ${ev.title} is approaching soon!`,
+                  type: 'event',
+                  time: new Date()
                 })
              }
           })
 
           if (upcoming.length > 0) {
-             // Deduplicate events 
              setNotifications(prev => {
                 const existingIds = new Set(prev.map(n => n.id))
                 const toAdd = upcoming.filter(u => !existingIds.has(u.id))

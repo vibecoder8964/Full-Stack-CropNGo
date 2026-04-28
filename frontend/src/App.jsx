@@ -12,6 +12,7 @@ import OnboardingWizard   from './pages/onboarding/OnboardingWizard'
 import ProfilePage        from './pages/app/ProfilePage'
 import ShopPage           from './pages/app/ShopPage'
 import ProductDetailPage  from './pages/app/ProductDetailPage'
+import ProductKeywordPage from './pages/app/ProductKeywordPage'
 import ChatPage           from './pages/app/ChatPage'
 import EventsPage         from './pages/app/EventsPage'
 import AIPage             from './pages/app/AIPage'
@@ -63,6 +64,7 @@ export default function App() {
       <Route path="/app/profile/:id" element={<RequireOnboarding><AppShell><ProfilePage /></AppShell></RequireOnboarding>} />
       <Route path="/app/shop"       element={<RequireOnboarding><AppShell><ShopPage /></AppShell></RequireOnboarding>} />
       <Route path="/app/shop/:id"   element={<RequireOnboarding><AppShell><ProductDetailPage /></AppShell></RequireOnboarding>} />
+      <Route path="/app/shop/product/:keyword" element={<AppShell><ProductKeywordPage /></AppShell>} />
       <Route path="/app/chat"       element={<RequireOnboarding><AppShell><ChatPage /></AppShell></RequireOnboarding>} />
       <Route path="/app/events"     element={<RequireOnboarding><AppShell><EventsPage /></AppShell></RequireOnboarding>} />
       <Route path="/app/ai"         element={<RequireOnboarding><AppShell><AIPage /></AppShell></RequireOnboarding>} />

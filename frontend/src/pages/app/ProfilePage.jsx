@@ -260,25 +260,33 @@ export default function ProfilePage() {
           </div>
 
           {(profile.socials?.linkedin || profile.socials?.facebook || profile.socials?.whatsapp || profile.socials?.twitter) && (
-            <div className="flex gap-2.5 mb-5 items-center justify-center">
+            <div className="flex flex-wrap gap-3 mb-5 items-center justify-center">
               {profile.socials?.whatsapp && (
-                <a href={`https://wa.me/${profile.socials.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-cream-200 bg-cream-50 flex items-center justify-center text-bark-400 hover:bg-forest-600 hover:text-white hover:border-forest-600 transition-all">
-                  <MessageCircle size={14} />
+                <a href={`https://wa.me/${profile.socials.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#25D366] text-white font-body font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                  <MessageCircle size={20} />
+                  <span>WhatsApp</span>
                 </a>
               )}
               {profile.socials?.linkedin && (
-                <a href={`https://${profile.socials.linkedin}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-cream-200 bg-cream-50 flex items-center justify-center text-bark-400 hover:bg-forest-600 hover:text-white hover:border-forest-600 transition-all">
-                  <Link size={14} />
+                <a href={`https://${profile.socials.linkedin}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#0A66C2] text-white font-body font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                  <Link size={20} />
+                  <span>LinkedIn</span>
                 </a>
               )}
               {profile.socials?.facebook && (
-                <a href={`https://${profile.socials.facebook}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-cream-200 bg-cream-50 flex items-center justify-center text-bark-400 hover:bg-forest-600 hover:text-white hover:border-forest-600 transition-all">
-                  <Share2 size={14} />
+                <a href={`https://${profile.socials.facebook}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#1877F2] text-white font-body font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                  <Share2 size={20} />
+                  <span>Facebook</span>
                 </a>
               )}
               {profile.socials?.twitter && (
-                <a href={`https://twitter.com/${profile.socials.twitter.replace('@', '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full border border-cream-200 bg-cream-50 flex items-center justify-center text-bark-400 hover:bg-forest-600 hover:text-white hover:border-forest-600 transition-all">
-                  <Hash size={14} />
+                <a href={`https://twitter.com/${profile.socials.twitter.replace('@', '')}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#1DA1F2] text-white font-body font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                  <Hash size={20} />
+                  <span>Twitter</span>
                 </a>
               )}
             </div>
