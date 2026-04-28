@@ -33,8 +33,6 @@ Never miss a learning opportunity again. Our background crawler automatically di
 *   Hands-on **Workshops** and Training.
 *   **Webinars** and Online Seminars across Malaysia.
 
-### 🌐 Automated SEO Site Publisher
-The moment a farmer lists a product, CropNGo automatically generates a professional, SEO-optimized personal website and pushes it to **GitHub Pages**. This gives every small-scale farmer a global digital footprint instantly.
 
 ---
 
